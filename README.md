@@ -5,6 +5,7 @@ CEOS 20th BE study - instagram clone coding
 ## 서비스 설명, 기능 명세
 
 인스타그램의 핵심 기능 클론 코딩
+
 사진을 포함한 게시글 CRUD, DM 기능을 구현 예정
 
 - 게시글 조회
@@ -26,16 +27,19 @@ CEOS 20th BE study - instagram clone coding
 - `username`: @'hcae_on' 과 같은 회원 이름
 - `nickname`: '이채원' 과 같은 회원 실명
   그 외 password, email, phone 필드 포함
+
   이메일과 전화번호의 경우, 각 값의 최대 길이를 기준으로 크기 선정
 
 ### Profile 엔티티
 
 User와 1:1 관계
+
 User의 상세 정보를 가지고 있음
 
 - `profile_id`: 프로필 생성 시 자동 생성되는 고유 번호 (PK)
 - `user_id`: 프로필과 1:1 매칭되는 user의 고유 번호 (FK)
   그 외 링크, 소개, 성별, 프로필 공개 여부, 프로필 사진 파일 경로 등 포함
+
   성별의 경우 남성, 여성, 그 외로 Enum 타입으로 생성
 
 ### Follow 엔티티
@@ -57,6 +61,7 @@ User는 여러 게시물을 작성할 수 있음, User와 N:1 관계
 ### PostLike 엔티티
 
 User는 여러 게시물에 좋아요를 누를 수 있음, User와 N:1 관계
+
 Post는 여러 개의 좋아요를 가질 수 있음, Post와 N:1 관계
 
 - `post_like_id`: 게시물 좋아요 생성 시 자동 생성되는 고유 번호 (PK)
@@ -74,6 +79,7 @@ Post는 여러 사진을 포함할 수 있음, Post와 N:1 관계
 ### Comment 엔티티
 
 Post는 여러 댓글을 포함할 수 있음, Post와 N:1 관계
+
 User는 여러 댓글을 달 수 있음, User와 N:1 관계
 
 - `comment_id`: 댓글 생성 시 자동 생성되는 고유 번호 (PK)
@@ -85,6 +91,7 @@ User는 여러 댓글을 달 수 있음, User와 N:1 관계
 ### CommentLike 엔티티
 
 User는 여러 댓글에 좋아요를 누를 수 있음, User와 N:1 관계
+
 Comment는 여러 개의 좋아요를 가질 수 있음, Comment와 N:1 관계
 
 - `comment_like_id`: 댓글 좋아요 생성 시 자동 생성되는 고유 번호 (PK)
@@ -94,9 +101,11 @@ Comment는 여러 개의 좋아요를 가질 수 있음, Comment와 N:1 관계
 ### ChatParticipant 엔티티
 
 User는 여러 채팅방에 참가할 수 있고, ChatRoom에 여러 유저가 포함될 수 있음
+
 N:M 관계이므로 이를 1:N, N:1 관계로 풀기 위한 중간 엔티티
 
 User는 여러 채팅에 참가할 수 있음, User과 N:1 관계
+
 ChatRoom은 한 명 이상의 여러 채팅 참가자를 포함할 수 있음, N:1 관계
 
 - `chat_participant_id`: 채팅 참가 시 자동 생성되는 고유 번호 (PK)
@@ -113,6 +122,7 @@ ChatRoom은 한 명 이상의 여러 채팅 참가자를 포함할 수 있음, N
 ### Message 엔티티
 
 User는 여러 메시지를 보낼 수 있음, User와 N:1 관계
+
 ChatRoom에는 여러 메시지가 포함될 수 있음, ChatRoom과 N:1 관계
 
 - `message_id`: 메세지 생성 시 자동 생성되는 고유 번호 (PK)
@@ -125,6 +135,7 @@ ChatRoom에는 여러 메시지가 포함될 수 있음, ChatRoom과 N:1 관계
 ## Repository 단위 테스트
 
 위 엔티티 중 FK를 포함하는 Post에 대해서 레포지토리 단위 테스트를 진행
+
 DataJpaTest를 사용할 때, 내장 데이터베이스로 테스트시 변경하는 문제가 있어 아래 어노테이션 추가
 
 ```java
@@ -153,7 +164,9 @@ DataJpaTest를 사용할 때, 내장 데이터베이스로 테스트시 변경�
 ```
 
 given, when, then으로 나눠 테스트 코드 작성
+
 Post 객체 생성 전, `user_id`를 FK로 가지고 있어 User 객체 생성 후 저장
+
 게시물 수가 3개인지, 각 게시물 내용이 일치하는지 확인
 
 ```java
