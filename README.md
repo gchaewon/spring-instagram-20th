@@ -21,6 +21,8 @@ CEOS 20th BE study - instagram clone coding
 
 설계한 DB의 ERD는 아래와 같음
 
+![instagram](https://github.com/user-attachments/assets/e41a55e5-ac3f-45a2-bc6e-fac855a94a3e)
+
 ### User 엔티티
 
 - `user_id`: 회원 가입시 자동 생성되는 고유 번호 (PK)
@@ -202,3 +204,18 @@ Post 객체 생성 전, `user_id`를 FK로 가지고 있어 User 객체 생성 �
 ```
 
 테스트 수행 시 발생하는 JPA 쿼리는 아래와 같음
+User, Post 순으로 생성하고 DB에 insert하는 것을 확인
+
+<img width="500" alt="JPA 쿼리" src="https://github.com/user-attachments/assets/7a7f935a-1c14-4309-b4ff-58945acf1a36">
+
+테스트 결과 검증 및 내용 출력 확인
+
+<img width="500" alt="실행 결과" src="https://github.com/user-attachments/assets/d842f900-0476-4f57-b4dc-531161fd8965">
+
+실제 mysql DB에 들어간 데이터 확인
+
+<img width="500" alt="DB" src="https://github.com/user-attachments/assets/8bfe07a0-55d9-4a89-b872-c54e53984170"/>
+
+
+
+
