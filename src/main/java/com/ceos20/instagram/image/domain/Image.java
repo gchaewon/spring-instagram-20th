@@ -20,12 +20,12 @@ public class Image {
     @JoinColumn(name="post_id")
     private Post post;
 
-    private String image_url;
+    private String imageUrl;
 
     @Builder
     public Image(Long id, Post post, String imageUrl) {
         this.id = id;
         this.post = post;
-        this.image_url = imageUrl;
+        this.imageUrl = imageUrl;
     }
 }
