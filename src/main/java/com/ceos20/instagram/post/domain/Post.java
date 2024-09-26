@@ -6,12 +6,15 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 @Entity
 @NoArgsConstructor (access = AccessLevel.PROTECTED)
 @Getter
-
+@EntityListeners(AuditingEntityListener.class) // @CreatedDate를 위한 어노테이션
 public class Post {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -24,7 +27,9 @@ public class Post {
 
    private String content;
 
+   @CreatedDate
    private LocalDateTime createdAt;
+   @LastModifiedDate
    private LocalDateTime modifiedAt;
 
     @Enumerated(EnumType.STRING)

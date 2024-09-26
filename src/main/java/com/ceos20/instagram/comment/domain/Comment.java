@@ -7,12 +7,16 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 
-import java.time.LocalTime;
+import java.time.LocalDateTime;
 
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@EntityListeners(AuditingEntityListener.class) // @CreatedDate를 위한 어노테이션
 @Getter
 public class Comment {
     @Id
@@ -34,11 +38,13 @@ public class Comment {
 
     private String content;
 
-    private LocalTime createdAt;
-    private LocalTime modifiedAt;
+    @CreatedDate
+    private LocalDateTime createdAt;
+    @LastModifiedDate
+    private LocalDateTime modifiedAt;
 
     @Builder
-    public Comment(Long id, User user, Post post, Comment parentComment, String content, LocalTime createdAt, LocalTime modifiedAt){
+    public Comment(Long id, User user, Post post, Comment parentComment, String content, LocalDateTime createdAt, LocalDateTime modifiedAt){
         this.id = id;
         this.user = user;
         this.post = post;

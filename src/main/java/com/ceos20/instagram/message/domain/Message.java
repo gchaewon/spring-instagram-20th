@@ -6,12 +6,15 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Builder;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 
 @Entity
 @NoArgsConstructor (access = AccessLevel.PROTECTED)
 @Getter
+@EntityListeners(AuditingEntityListener.class) // @CreatedDate를 위한 어노테이션
 public class Message {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -32,6 +35,7 @@ public class Message {
 
     private String fileUrl;
 
+    @CreatedDate
     private LocalDateTime createdAt;
 
     @Builder
