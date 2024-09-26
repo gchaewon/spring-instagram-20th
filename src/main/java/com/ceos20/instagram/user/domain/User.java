@@ -1,6 +1,7 @@
 package com.ceos20.instagram.user.domain;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -15,10 +16,19 @@ public class User{
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_id")
     private Long id;
+    @NotNull
+    @Column(length = 50)
     private String username;
+    @NotNull
+    @Column(length = 50)
     private String nickname;
-    private String password;
+    @NotNull
+    private String password; // 암호화되어 저장할 수 있으므로 길이 지정하지 않음
+    @NotNull
+    @Column(length = 254)
     private String email;
+    @NotNull
+    @Column(length = 20)
     private String phone;
 
     @Builder

@@ -3,6 +3,8 @@ package com.ceos20.instagram.comment.domain;
 import com.ceos20.instagram.post.domain.Post;
 import com.ceos20.instagram.user.domain.User;
 import jakarta.persistence.*;
+
+import jakarta.validation.constraints.NotNull;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -36,6 +38,8 @@ public class Comment {
     @JoinColumn(name = "parent_id")
     private Comment parentComment;
 
+    @NotNull
+    @Column(length = 2200)
     private String content;
 
     @CreatedDate

@@ -2,6 +2,7 @@ package com.ceos20.instagram.post.domain;
 
 import com.ceos20.instagram.user.domain.User;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -25,6 +26,8 @@ public class Post {
     @JoinColumn(name="user_id")
     private User user;
 
+    @NotNull
+    @Column(length = 2200)
    private String content;
 
    @CreatedDate
@@ -33,7 +36,7 @@ public class Post {
    private LocalDateTime modifiedAt;
 
     @Enumerated(EnumType.STRING)
-    private CommentOption commentOption;
+    private CommentOption commentOption = CommentOption.ENABLED; // 기본값 설정
 
     @Builder
     public Post(Long id, User user, String content, LocalDateTime createdAt, LocalDateTime modifiedAt, CommentOption commentOption) {
@@ -44,6 +47,5 @@ public class Post {
         this.modifiedAt = modifiedAt;
         this.commentOption = commentOption;
     }
-
 
 }

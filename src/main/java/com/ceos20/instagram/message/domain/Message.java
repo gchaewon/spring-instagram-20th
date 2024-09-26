@@ -2,6 +2,7 @@ package com.ceos20.instagram.message.domain;
 
 import com.ceos20.instagram.user.domain.User;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -27,13 +28,14 @@ public class Message {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_message_id")
-    private Message parentMessage;
+    private Message parentMessage; // 특정 메시지에 답장 하는 경우, 해당 메시지
 
-    private String content;
+    @Column(length = 10000)
+    private String content; // 첨부 파일만 가는 경우, 내용 없어도 됨
 
-    private String reaction;
+    private String reaction; // 메시지에 대한 공감 이모지
 
-    private String fileUrl;
+    private String fileUrl; // 첨부파일이 있는 경우, 파일의 경로
 
     @CreatedDate
     private LocalDateTime createdAt;

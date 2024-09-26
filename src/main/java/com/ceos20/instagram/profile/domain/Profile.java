@@ -26,14 +26,16 @@ public class Profile {
     @JoinColumn(name="user_id")
     private User user;
 
+    @Column(length = 200)
     private String link;
 
+    @Column(length = 150)
     private String introduce;
 
     @Enumerated(EnumType.STRING)
-    private Gender gender;
+    private Gender gender = Gender.NON; // 기본값 설정
 
-    private Boolean publicOption;
+    private Boolean publicOption = true; // 기본값 설정
 
     private String profileImageUrl;
 

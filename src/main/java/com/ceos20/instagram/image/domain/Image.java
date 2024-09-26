@@ -2,6 +2,7 @@ package com.ceos20.instagram.image.domain;
 
 import com.ceos20.instagram.post.domain.Post;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -20,6 +21,7 @@ public class Image {
     @JoinColumn(name="post_id")
     private Post post;
 
+    @NotNull
     private String imageUrl;
 
     @Builder
