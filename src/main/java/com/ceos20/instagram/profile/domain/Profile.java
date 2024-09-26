@@ -2,15 +2,16 @@ package com.ceos20.instagram.profile.domain;
 
 import com.ceos20.instagram.user.domain.User;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
+import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
+
+import java.time.LocalDateTime;
 
 @Entity
-@AllArgsConstructor
-@NoArgsConstructor
-@Getter @Setter
+@NoArgsConstructor (access = AccessLevel.PROTECTED)
+@Getter
 public class Profile {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -28,8 +29,27 @@ public class Profile {
     @Enumerated(EnumType.STRING)
     private Gender gender;
 
-    private Boolean public_option;
+    private Boolean publicOption;
 
-    private String profile_image_url;
+    private String profileImageUrl;
+
+    private LocalDateTime createdAt;
+    private LocalDateTime modifiedAt;
+
+    @Builder
+    public Profile(Long id, User user, String link, String introduce, Gender gender,
+                   Boolean publicOption, String profileImageUrl,
+                   LocalDateTime createdAt, LocalDateTime modifiedAt) {
+        this.id = id;
+        this.user = user;
+        this.link = link;
+        this.introduce = introduce;
+        this.gender = gender;
+        this.publicOption = publicOption;
+        this.profileImageUrl = profileImageUrl;
+        this.createdAt = createdAt;
+        this.modifiedAt = modifiedAt;
+    }
+
 }
 

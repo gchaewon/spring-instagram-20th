@@ -2,17 +2,16 @@ package com.ceos20.instagram.post.domain;
 
 import com.ceos20.instagram.user.domain.User;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
+import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 import java.time.LocalDateTime;
-
 @Entity
-@AllArgsConstructor
-@NoArgsConstructor
-@Getter @Setter
+@NoArgsConstructor (access = AccessLevel.PROTECTED)
+@Getter
+
 public class Post {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -25,10 +24,21 @@ public class Post {
 
    private String content;
 
-   private LocalDateTime created_time;
-   private LocalDateTime edited_time;
+   private LocalDateTime createdAt;
+   private LocalDateTime modifiedAt;
 
     @Enumerated(EnumType.STRING)
-    private CommentOption comment_option;
+    private CommentOption commentOption;
+
+    @Builder
+    public Post(Long id, User user, String content, LocalDateTime createdAt, LocalDateTime modifiedAt, CommentOption commentOption) {
+        this.id = id;
+        this.user = user;
+        this.content = content;
+        this.createdAt = createdAt;
+        this.modifiedAt = modifiedAt;
+        this.commentOption = commentOption;
+    }
+
 
 }

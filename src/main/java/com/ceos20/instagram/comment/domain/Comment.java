@@ -3,20 +3,21 @@ package com.ceos20.instagram.comment.domain;
 import com.ceos20.instagram.post.domain.Post;
 import com.ceos20.instagram.user.domain.User;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
+import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
+
 
 import java.time.LocalTime;
 
 @Entity
-@AllArgsConstructor
-@NoArgsConstructor
-@Getter @Setter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Getter
 public class Comment {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name="comment_id")
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -29,11 +30,22 @@ public class Comment {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_id")
-    private Comment parrentComment;
+    private Comment parentComment;
 
     private String content;
 
-    private LocalTime created_time;
-    private LocalTime edited_time;
+    private LocalTime createdAt;
+    private LocalTime modifiedAt;
+
+    @Builder
+    public Comment(Long id, User user, Post post, Comment parentComment, String content, LocalTime createdAt, LocalTime modifiedAt){
+        this.id = id;
+        this.user = user;
+        this.post = post;
+        this.content = content;
+        this.parentComment = parentComment;
+        this.createdAt = createdAt;
+        this.modifiedAt = modifiedAt;
+    }
 
 }

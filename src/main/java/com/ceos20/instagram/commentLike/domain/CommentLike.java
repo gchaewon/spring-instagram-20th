@@ -1,16 +1,16 @@
 package com.ceos20.instagram.commentLike.domain;
 
+import com.ceos20.instagram.comment.domain.Comment;
 import com.ceos20.instagram.user.domain.User;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.AccessLevel;
 
 @Entity
-@AllArgsConstructor
-@NoArgsConstructor
-@Getter @Setter
+@NoArgsConstructor (access = AccessLevel.PROTECTED)
+@Getter
 public class CommentLike {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -19,9 +19,17 @@ public class CommentLike {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name ="comment_id")
-    private com.ceos20.instagram.comment.domain.Comment Comment;
+    private Comment comment;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name ="user_id")
     private User user;
+
+    @Builder
+    public CommentLike(Long id, Comment comment, User user){
+        this.id = id;
+        this.comment = comment;
+        this.user = user;
+    }
+
 }

@@ -2,17 +2,16 @@ package com.ceos20.instagram.message.domain;
 
 import com.ceos20.instagram.user.domain.User;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.Builder;
 
 import java.time.LocalDateTime;
 
 @Entity
-@AllArgsConstructor
-@NoArgsConstructor
-@Getter @Setter
+@NoArgsConstructor (access = AccessLevel.PROTECTED)
+@Getter
 public class Message {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -33,6 +32,16 @@ public class Message {
 
     private String fileUrl;
 
-    private LocalDateTime sentTime;
+    private LocalDateTime createdAt;
 
+    @Builder
+    public Message(Long id, User user, Message parentMessage, String content, String reaction, String fileUrl, LocalDateTime createdAt) {
+        this.id = id;
+        this.user = user;
+        this.parentMessage = parentMessage;
+        this.content = content;
+        this.reaction = reaction;
+        this.fileUrl = fileUrl;
+        this.createdAt = createdAt;
+    }
 }

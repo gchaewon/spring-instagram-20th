@@ -1,15 +1,15 @@
 package com.ceos20.instagram.user.domain;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
+import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 @Entity
-@AllArgsConstructor
-@NoArgsConstructor
-@Getter @Setter
+@NoArgsConstructor (access = AccessLevel.PROTECTED)
+@Getter
+
 public class User{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -20,5 +20,16 @@ public class User{
     private String password;
     private String email;
     private String phone;
+
+    @Builder
+    public User(Long id, String username, String nickname, String password, String email, String phone) {
+        this.id = id;
+        this.username = username;
+        this.nickname = nickname;
+        this.password = password;
+        this.email = email;
+        this.phone = phone;
+    }
+
 }
 
