@@ -25,16 +25,13 @@ public class PostLike {
     @JoinColumn(name="post_id")
     private Post post;
 
-    private String imageUrl;
-
     @CreatedDate
     private LocalDateTime createdAt;
 
     @Builder
-    public PostLike(Long id, Post post, String imageUrl, LocalDateTime createdAt) {
+    public PostLike(Long id, Post post, LocalDateTime createdAt) {
         this.id = id;
         this.post = post;
-        this.imageUrl = imageUrl;
         this.createdAt = createdAt;
     }
 }
