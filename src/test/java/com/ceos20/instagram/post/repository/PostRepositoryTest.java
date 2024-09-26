@@ -41,18 +41,20 @@ class PostRepositoryTest {
     void savePost(){
         //given
         // 사용자 생성 및 저장
-        User user = new User();
-        user.setUsername("testUser");
+        User user = User.builder()
+                .username("testUser")
+                        .build();
         userRepository.save(user);
 
         // 게시물 3개 생성
         for (int i = 1; i <= 3; i++) {
-            Post post = new Post();
-            post.setContent("Test Content " + i);
-            post.setUser(user);
-            post.setCreated_time(LocalDateTime.now());
-            post.setEdited_time(LocalDateTime.now());
-            post.setComment_option(CommentOption.ENABLED);
+            Post post = Post.builder()
+                    .content("Test Content " + i)
+                    .user(user)
+                    .createdAt(LocalDateTime.now())
+                    .modifiedAt(LocalDateTime.now())
+                    .commentOption(CommentOption.ENABLED)
+                    .build();
             postRepository.save(post);
         }
 
