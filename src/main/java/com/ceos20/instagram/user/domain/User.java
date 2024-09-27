@@ -16,17 +16,22 @@ public class User{
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_id")
     private Long id;
+
     @NotNull
     @Column(length = 50)
     private String username;
+
     @NotNull
-    @Column(length = 50)
+    @Column(length = 50, unique = true)
     private String nickname;
+
     @NotNull
     private String password; // 암호화되어 저장할 수 있으므로 길이 지정하지 않음
+
     @NotNull
-    @Column(length = 254)
+    @Column(length = 254, unique = true)
     private String email;
+
     @NotNull
     @Column(length = 20)
     private String phone;
