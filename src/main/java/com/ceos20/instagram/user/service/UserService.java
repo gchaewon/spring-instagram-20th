@@ -41,12 +41,9 @@ public class UserService {
     @Transactional(readOnly = true)
     public UserLoginResponseDto login(UserLoginRequestDto requestDto){
         // username으로 사용자 조회
-        User user = userRepository.findByUsername(requestDto.getUsername()).orElse(null);
+        User user = userRepository.findByUsername(requestDto.getUsername())
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 아이디입니다: " + requestDto.getUsername()));
 
-        // username이 존재하지 않을 경우 예외 처리
-        if (user == null) {
-            throw new IllegalArgumentException("존재하지 않는 아이디입니다: " + requestDto.getUsername());
-        }
 
         // 비밀번호 확인
         if (!passwordEncoder.matches(requestDto.getPassword(), user.getPassword())) {
