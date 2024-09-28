@@ -1,5 +1,6 @@
 package com.ceos20.instagram.user.service;
 
+import com.ceos20.instagram.config.EncoderConfig;
 import com.ceos20.instagram.user.domain.User;
 import com.ceos20.instagram.user.dto.UserRegisterRequestDto;
 import com.ceos20.instagram.user.repository.UserRepository;
@@ -9,7 +10,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,16 +22,19 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@Import(EncoderConfig.class)
 class UserServiceTest {
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder; // 비밀번호 암호화용 encoder
 
     private UserService userService;
 
     @BeforeEach
     void setUp() {
-        userService = new UserService(userRepository, new BCryptPasswordEncoder()); // BCryptPasswordEncoder 사용
+        userService = new UserService(userRepository, passwordEncoder); // PasswordEncoder 주입
     }
 
     @Test
@@ -40,7 +46,7 @@ class UserServiceTest {
         userRepository.save(User.builder()
                 .email("test@gmail.com")
                 .username("anotherUser")
-                .password("password")
+                .password(passwordEncoder.encode("password")) // 암호화된 비밀번호 저장
                 .build());
 
         // when & then
@@ -66,4 +72,3 @@ class UserServiceTest {
         assertTrue(userRepository.existsByEmail("newuser@gmail.com"));
     }
 }
-
