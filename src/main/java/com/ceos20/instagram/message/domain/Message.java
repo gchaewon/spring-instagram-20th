@@ -1,8 +1,8 @@
 package com.ceos20.instagram.message.domain;
 
 import com.ceos20.instagram.user.domain.User;
+import com.ceos20.instagram.chatRoom.domain.ChatRoom;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -23,6 +23,10 @@ public class Message {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "chat_room_id")
+    private ChatRoom chatRoom;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User user;
 
@@ -41,8 +45,9 @@ public class Message {
     private LocalDateTime createdAt;
 
     @Builder
-    public Message(Long id, User user, Message parentMessage, String content, String reaction, String fileUrl, LocalDateTime createdAt) {
+    public Message(Long id, ChatRoom chatRoom, User user, Message parentMessage, String content, String reaction, String fileUrl, LocalDateTime createdAt) {
         this.id = id;
+        this.chatRoom = chatRoom;
         this.user = user;
         this.parentMessage = parentMessage;
         this.content = content;
