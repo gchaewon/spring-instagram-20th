@@ -20,11 +20,12 @@ public class CommentRequestDto {
     }
 
     // Comment 엔티티로 변환하는 메서드
-    public Comment toEntity(Post post, User user) {
+    public Comment toEntity(Post post, User user, Comment parentComment) {
         return Comment.builder()
-                .post(post) // 댓글이 달린 포스트
-                .user(user) // 댓글 작성자
+                .post(post) // 댓글이 달리는 포스트
+                .user(user) // 댓글을 작성한 사용자
                 .content(this.content)
+                .parentComment(parentComment) // 부모 댓글 설정
                 .build();
     }
 }
