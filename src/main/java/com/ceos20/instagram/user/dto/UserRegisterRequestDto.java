@@ -6,8 +6,10 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Getter
+@NoArgsConstructor
 public class UserRegisterRequestDto {
     @NotBlank(message = "아이디는 필수입니다.")
     @Pattern(message = "잘못된 아이디 형식입니다."

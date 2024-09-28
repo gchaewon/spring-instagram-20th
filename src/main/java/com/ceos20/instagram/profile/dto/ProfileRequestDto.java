@@ -5,8 +5,10 @@ import com.ceos20.instagram.profile.domain.Profile;
 import com.ceos20.instagram.user.domain.User;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Getter
+@NoArgsConstructor
 public class ProfileRequestDto {
     private String link;
     private String introduce;

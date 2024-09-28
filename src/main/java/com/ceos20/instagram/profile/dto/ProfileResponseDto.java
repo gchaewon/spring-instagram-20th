@@ -4,9 +4,10 @@ import com.ceos20.instagram.profile.domain.Gender;
 import com.ceos20.instagram.profile.domain.Profile;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Getter
-@Builder
+@NoArgsConstructor
 public class ProfileResponseDto {
     private Long id; // 프로필 고유 번호
     private String link;

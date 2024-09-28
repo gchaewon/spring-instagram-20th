@@ -3,9 +3,10 @@ package com.ceos20.instagram.profile.dto;
 import com.ceos20.instagram.profile.domain.Gender;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Getter
-@Builder
+@NoArgsConstructor
 public class ProfileUpdateRequestDto {
     private String link;
     private String introduce;
