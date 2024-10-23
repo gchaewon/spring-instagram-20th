@@ -1,5 +1,6 @@
 package com.ceos20.instagram.domain.comment.domain;
 
+import com.ceos20.instagram.global.BaseTimeEntity;
 import com.ceos20.instagram.domain.post.domain.Post;
 import com.ceos20.instagram.domain.user.domain.User;
 import jakarta.persistence.*;
@@ -13,7 +14,7 @@ import lombok.NoArgsConstructor;
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Getter
-public class Comment {
+public class Comment extends BaseTimeEntity{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name="comment_id")

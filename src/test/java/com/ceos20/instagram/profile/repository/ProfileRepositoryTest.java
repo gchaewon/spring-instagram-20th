@@ -83,7 +83,6 @@ class ProfileRepositoryTest {
                 .gender(profile.getGender())
                 .publicOption(profile.getPublicOption())
                 .profileImageUrl(profile.getProfileImageUrl())
-                .modifiedAt(LocalDateTime.now())
                 .build();
 
         // 프로필 저장
