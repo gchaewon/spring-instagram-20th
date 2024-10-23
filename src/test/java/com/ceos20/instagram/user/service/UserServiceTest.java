@@ -1,21 +1,18 @@
 package com.ceos20.instagram.user.service;
 
-import com.ceos20.instagram.config.EncoderConfig;
-import com.ceos20.instagram.user.domain.User;
-import com.ceos20.instagram.user.dto.UserRegisterRequestDto;
-import com.ceos20.instagram.user.repository.UserRepository;
+import com.ceos20.instagram.global.config.EncoderConfig;
+import com.ceos20.instagram.domain.user.domain.User;
+import com.ceos20.instagram.domain.user.dto.UserRegisterRequestDto;
+import com.ceos20.instagram.domain.user.repository.UserRepository;
+import com.ceos20.instagram.domain.user.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertTrue;

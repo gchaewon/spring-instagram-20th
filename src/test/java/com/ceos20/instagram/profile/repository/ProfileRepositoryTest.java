@@ -1,9 +1,10 @@
 package com.ceos20.instagram.profile.repository;
 
-import com.ceos20.instagram.profile.domain.Gender;
-import com.ceos20.instagram.profile.domain.Profile;
-import com.ceos20.instagram.user.domain.User;
-import com.ceos20.instagram.user.repository.UserRepository;
+import com.ceos20.instagram.domain.profile.domain.Gender;
+import com.ceos20.instagram.domain.profile.domain.Profile;
+import com.ceos20.instagram.domain.profile.repository.ProfileRepository;
+import com.ceos20.instagram.domain.user.domain.User;
+import com.ceos20.instagram.domain.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

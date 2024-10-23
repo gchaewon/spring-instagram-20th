@@ -1,12 +1,13 @@
 package com.ceos20.instagram.commentLike.repository;
 
-import com.ceos20.instagram.comment.domain.Comment;
-import com.ceos20.instagram.comment.repository.CommentRepository;
-import com.ceos20.instagram.commentLike.domain.CommentLike;
-import com.ceos20.instagram.post.domain.Post;
-import com.ceos20.instagram.post.repository.PostRepository;
-import com.ceos20.instagram.user.domain.User;
-import com.ceos20.instagram.user.repository.UserRepository;
+import com.ceos20.instagram.domain.comment.domain.Comment;
+import com.ceos20.instagram.domain.comment.repository.CommentRepository;
+import com.ceos20.instagram.domain.commentLike.domain.CommentLike;
+import com.ceos20.instagram.domain.commentLike.repository.CommentLikeRepository;
+import com.ceos20.instagram.domain.post.domain.Post;
+import com.ceos20.instagram.domain.post.repository.PostRepository;
+import com.ceos20.instagram.domain.user.domain.User;
+import com.ceos20.instagram.domain.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
