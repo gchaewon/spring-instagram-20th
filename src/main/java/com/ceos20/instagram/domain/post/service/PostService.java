@@ -1,11 +1,12 @@
 package com.ceos20.instagram.domain.post.service;
 
-import com.ceos20.instagram.domain.image.repository.ImageRepository;
+import com.ceos20.instagram.domain.image.domain.Image;
+import com.ceos20.instagram.domain.image.service.ImageService;
 import com.ceos20.instagram.domain.post.domain.Post;
 import com.ceos20.instagram.domain.post.dto.PostRequestDto;
+import com.ceos20.instagram.domain.post.dto.PostUpdateRequestDto;
 import com.ceos20.instagram.domain.user.repository.UserRepository;
 import com.ceos20.instagram.domain.post.dto.PostResponseDto;
-import com.ceos20.instagram.domain.post.dto.PostUpdateRequestDto;
 import com.ceos20.instagram.domain.post.repository.PostRepository;
 import com.ceos20.instagram.domain.user.domain.User;
 import lombok.RequiredArgsConstructor;
@@ -16,10 +17,11 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class PostService {
     private final PostRepository postRepository;
     private final UserRepository userRepository;
-    private final ImageRepository imageRepository;
+    private final ImageService imageService;
 
     // 포스트 생성 메서드
     @Transactional
@@ -27,51 +29,65 @@ public class PostService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다: " + userId));
 
-        Post post = requestDto.toEntity(user);
+        // dto -> entity 변환
+        Post post = requestDto.toEntity(requestDto, user);
+
+        // 포스트 저장
         Post savedPost = postRepository.save(post);
 
-        return PostResponseDto.from(savedPost, requestDto.getImageIdList()); // 수정
+        // 이미지 생성 및 저장
+        List<Image> images = imageService.createImages(requestDto.getImageUrls(), savedPost);
+
+        return PostResponseDto.from(savedPost, images); // response DTO 반환
     }
 
     // 포스트 조회 메서드
-    @Transactional(readOnly = true)
     public PostResponseDto getPost(Long postId) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("포스트를 찾을 수 없습니다: " + postId));
 
-        List<Long> imageIdList = imageRepository.findByPostId(postId); // Post에 포함된 이미지 ID 리스트를 가져오기
-        return PostResponseDto.from(post, imageIdList); // 수정
+        // 포스트 아이디와 맵핑되는 이미지 리스트
+        List<Image> images = imageService.getImagesByPostId(postId);
+
+        return PostResponseDto.from(post, images); // response DTO 반환
     }
 
     // 포스트 수정 메서드
     @Transactional
-    public PostResponseDto updatePost(Long postId, PostUpdateRequestDto updateDto) {
+    public PostResponseDto updatePost(Long postId, PostUpdateRequestDto requestDto) {
         // 포스트 아이디로 조회
         Post existingPost = postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("포스트를 찾을 수 없습니다: " + postId));
-        List<Long> imageIdList = imageRepository.findByPostId(postId);
 
+        // 업데이트 요청 반영한 포스트 객체 생성
         Post updatedPost = Post.builder()
                 .id(existingPost.getId())
                 .user(existingPost.getUser())
-                .content(updateDto.getContent() != null ? updateDto.getContent() : existingPost.getContent()) // content 업데이트
-                .commentOption(updateDto.getCommentOption() != null ? updateDto.getCommentOption() : existingPost.getCommentOption()) // 댓글 옵션 업데이트
+                .content(requestDto.getContent() != null ? requestDto.getContent() : existingPost.getContent()) // content 업데이트
+                .commentOption(requestDto.getCommentOption() != null ? requestDto.getCommentOption() : existingPost.getCommentOption()) // 댓글 옵션 업데이트
                 .build();
 
         // 포스트 저장
         Post savedPost = postRepository.save(updatedPost);
-        return PostResponseDto.from(savedPost, imageIdList);
+
+        // 이미지 서비스 호출하여 이미지 삭제
+        if (requestDto.getImageIdList() != null) { // 삭제할 이미지가 있을 때만 수행
+            imageService.deleteImagesByIds(requestDto.getImageIdList());
+        }
+        // 이미지 객체 리스트 생성
+        List<Image> images = imageService.getImagesByPostId(postId);
+
+        return PostResponseDto.from(savedPost, images);
     }
 
     // 포스트 삭제 메서드
     @Transactional
     public void deletePost(Long postId) {
         // 포스트 아이디로 조회
-        Post existingPost = postRepository.findById(postId)
+        Post targetPost = postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("포스트를 찾을 수 없습니다: " + postId));
 
         // 포스트 삭제
-        postRepository.delete(existingPost);
+        postRepository.delete(targetPost);
     }
-
 }
