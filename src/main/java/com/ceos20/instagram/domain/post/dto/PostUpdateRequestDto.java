@@ -1,28 +1,18 @@
 package com.ceos20.instagram.domain.post.dto;
 
 import com.ceos20.instagram.domain.post.domain.CommentOption;
-import com.ceos20.instagram.domain.post.domain.Post;
-import com.ceos20.instagram.domain.user.domain.User;
 import lombok.Builder;
 import lombok.Getter;
+
+import java.util.List;
 
 @Getter
 @Builder
 public class PostUpdateRequestDto {
     private String content; // 포스트 내용
-    private CommentOption commentOption; // 댓글 옵션
-
-
-    public PostUpdateRequestDto(String content, CommentOption commentOption) {
-        this.content = content;
-        this.commentOption = commentOption;
-    }
-
-    public Post toEntity(User user) {
-        return Post.builder()
-                .user(user) // 포스트를 작성한 사용자
-                .content(this.content)
-                .commentOption(this.commentOption) // 댓글 옵션 설정
-                .build();
-    }
+    private List<Long> imageIdList; // 업데이트할 이미지 id 리스트
+    private CommentOption commentOption = CommentOption.ENABLED; // 댓글 허용으로 기본값 설정
 }
+
+
+
