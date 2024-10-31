@@ -30,4 +30,13 @@ public class Image {
         this.post = post;
         this.imageUrl = imageUrl;
     }
+
+    public static Image createImage(String imageUrl, Post post) {
+        return Image.builder()
+                .imageUrl(imageUrl)
+                .post(post) // 포스트를 설정
+                .build();
+    }
+
+
 }
