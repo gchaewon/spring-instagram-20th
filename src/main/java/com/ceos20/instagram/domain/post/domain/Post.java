@@ -2,6 +2,7 @@ package com.ceos20.instagram.domain.post.domain;
 
 import com.ceos20.instagram.global.BaseTimeEntity;
 import com.ceos20.instagram.domain.user.domain.User;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.AccessLevel;
@@ -20,6 +21,7 @@ public class Post extends BaseTimeEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name="user_id")
+    @JsonIgnore
     private User user;
 
     @NotNull

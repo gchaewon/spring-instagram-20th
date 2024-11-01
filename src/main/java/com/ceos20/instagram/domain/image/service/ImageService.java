@@ -27,9 +27,22 @@ public class ImageService {
         return imageRepository.saveAll(images);
     }
 
-    // 특정 포스트의 이미지 조회 메서드
+    // 특정 포스트의 이미지 전체 조회 메서드
     public List<Image> getImagesByPostId(Long postId) {
         return imageRepository.findByPostId(postId);
+    }
+
+    // 여러 포스트의 이미지 전체 조회 메서드
+    public List<List<Image>> getImagesByPostIds(List<Long> postIds){
+        return imageRepository.findByPostIdIn(postIds);
+    }
+
+    // 특정 포스트의 이미지 전체 삭제 메서드
+    public void deleteImagesByPostId(Long postId) {
+        List<Image> images = imageRepository.findByPostId(postId);
+        if (!images.isEmpty()) {
+            imageRepository.deleteAll(images);
+        }
     }
 
     // 이미지 삭제 메서드
@@ -42,4 +55,6 @@ public class ImageService {
             imageRepository.deleteById(id); // 각 ID로 이미지를 삭제
         }
     }
+
+
 }

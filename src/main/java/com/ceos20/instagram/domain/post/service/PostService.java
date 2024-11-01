@@ -9,11 +9,15 @@ import com.ceos20.instagram.domain.user.repository.UserRepository;
 import com.ceos20.instagram.domain.post.dto.PostResponseDto;
 import com.ceos20.instagram.domain.post.repository.PostRepository;
 import com.ceos20.instagram.domain.user.domain.User;
+import com.ceos20.instagram.global.exception.CustomException;
+import com.ceos20.instagram.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -27,7 +31,7 @@ public class PostService {
     @Transactional
     public PostResponseDto createPost(Long userId, PostRequestDto requestDto) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다: " + userId));
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "유효하지 않은 유저로부터 요청입니다.", userId));
 
         // dto -> entity 변환
         Post post = requestDto.toEntity(requestDto, user);
@@ -44,7 +48,7 @@ public class PostService {
     // 포스트 조회 메서드
     public PostResponseDto getPost(Long postId) {
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new IllegalArgumentException("포스트를 찾을 수 없습니다: " + postId));
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "포스트를 찾을 수 없습니다.", postId));
 
         // 포스트 아이디와 맵핑되는 이미지 리스트
         List<Image> images = imageService.getImagesByPostId(postId);
@@ -52,12 +56,37 @@ public class PostService {
         return PostResponseDto.from(post, images); // response DTO 반환
     }
 
+    // 특정 유저의 포스트 전체  조회 메서드
+    public List<PostResponseDto> getPostsByUserId(Long userId){
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "유효하지 않은 유저로부터 요청입니다.", userId));
+
+        // 유저의 모든 포스트 조회
+        List<Post> posts = postRepository.findByUserId(userId);
+
+        // 조회한 포스트 ID 리스트
+        List<Long> postIds = posts.stream()
+                .map(Post::getId)
+                .collect(Collectors.toList());
+
+        // 조회한 포스트의 이미지 전체 리스트
+        List<List<Image>> images = imageService.getImagesByPostIds(
+                posts.stream().map(Post::getId).collect(Collectors.toList()));
+
+        // 조회한 포스트와 이미지로 response DTO 생성하기
+        List<PostResponseDto> postResponseDtos = new ArrayList<>();
+        for(int i=0; i<posts.size(); i++){
+            postResponseDtos.add(PostResponseDto.from(posts.get(i), images.get(i)));
+        }
+        return postResponseDtos;
+    }
+
     // 포스트 수정 메서드
     @Transactional
     public PostResponseDto updatePost(Long postId, PostUpdateRequestDto requestDto) {
         // 포스트 아이디로 조회
         Post existingPost = postRepository.findById(postId)
-                .orElseThrow(() -> new IllegalArgumentException("포스트를 찾을 수 없습니다: " + postId));
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "포스트를 찾을 수 없습니다.", postId));
 
         // 업데이트 요청 반영한 포스트 객체 생성
         Post updatedPost = Post.builder()
@@ -85,7 +114,10 @@ public class PostService {
     public void deletePost(Long postId) {
         // 포스트 아이디로 조회
         Post targetPost = postRepository.findById(postId)
-                .orElseThrow(() -> new IllegalArgumentException("포스트를 찾을 수 없습니다: " + postId));
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "포스트를 찾을 수 없습니다.", postId));
+
+        // 관련 이미지 삭제
+        imageService.deleteImagesByPostId(postId);
 
         // 포스트 삭제
         postRepository.delete(targetPost);
