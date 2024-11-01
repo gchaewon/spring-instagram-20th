@@ -3,24 +3,20 @@ package com.ceos20.instagram.domain.chatRoom.dto;
 import com.ceos20.instagram.domain.chatRoom.domain.ChatRoom;
 import lombok.Builder;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
 @Getter
-@NoArgsConstructor
+@Builder
 public class ChatRoomResponseDto {
     private Long id;
-
-    @Builder
-    public ChatRoomResponseDto(Long id, LocalDateTime createdAt) {
-        this.id = id;
-    }
+    private LocalDateTime createdAt;
 
     // ChatRoom 엔티티를 DTO로 변환하는 메서드
     public static ChatRoomResponseDto from(ChatRoom chatRoom) {
         return ChatRoomResponseDto.builder()
                 .id(chatRoom.getId())
+                .createdAt(chatRoom.getCreatedAt())
                 .build();
     }
 }
