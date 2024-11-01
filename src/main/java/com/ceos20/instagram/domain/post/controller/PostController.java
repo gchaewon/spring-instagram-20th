@@ -64,7 +64,7 @@ public class PostController {
 
     // 특정 유저의 게시글 목록 조회
     @Operation(summary = "특정 유저의 게시글 전체 조회")
-    @GetMapping("/userId={userId}")
+    @GetMapping("/{userId}")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "특정 유저의 전체 게시글 조회 성공",
                     content = @Content(mediaType = "application/json",
