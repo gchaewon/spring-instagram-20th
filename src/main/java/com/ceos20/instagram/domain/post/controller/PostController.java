@@ -19,14 +19,13 @@ import java.util.List;
 
 
 @RestController
-@RequestMapping("/posts")
 @RequiredArgsConstructor
 @Tag(name = "Post Controller", description = "게시글 컨트롤러 \n 작성, 수정, 삭제, 조회 로직을 포함합니다.")
 public class PostController {
     private final PostService postService;
     // 게시글 작성
     @Operation(summary = "게시글 작성")
-    @PostMapping("")
+    @PostMapping("/posts")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "게시글 작성 성공",
                 content = @Content(mediaType = "application/json",
@@ -46,7 +45,7 @@ public class PostController {
 
     // 게시글 조회
     @Operation(summary = "게시글 조회")
-    @GetMapping("/{postId}")
+    @GetMapping("/posts/{postId}")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "게시글 조회 성공",
                     content = @Content(mediaType = "application/json",
@@ -64,7 +63,7 @@ public class PostController {
 
     // 특정 유저의 게시글 목록 조회
     @Operation(summary = "특정 유저의 게시글 전체 조회")
-    @GetMapping("/{userId}")
+    @GetMapping("/users/{userId}/posts")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "특정 유저의 전체 게시글 조회 성공",
                     content = @Content(mediaType = "application/json",
@@ -82,7 +81,7 @@ public class PostController {
 
     // 게시글 수정
     @Operation(summary = "게시글 수정")
-    @PatchMapping("/{postId}") // 필드 일부 수정 가능
+    @PatchMapping("/posts/{postId}") // 필드 일부 수정 가능
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "게시글 수정 성공",
                     content = @Content(mediaType = "application/json",
@@ -101,7 +100,7 @@ public class PostController {
 
     // 게시글 삭제
     @Operation(summary = "게시글 삭제")
-    @DeleteMapping("/{postId}")
+    @DeleteMapping("/posts/{postId}")
     @ApiResponses({
             // 반환할 데이터 없음
             @ApiResponse(responseCode = "204", description = "게시글 삭제 성공")
