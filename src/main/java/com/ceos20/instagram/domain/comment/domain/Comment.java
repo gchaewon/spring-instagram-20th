@@ -6,14 +6,11 @@ import com.ceos20.instagram.domain.user.domain.User;
 import jakarta.persistence.*;
 
 import jakarta.validation.constraints.NotNull;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @Entity
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Getter
+@NoArgsConstructor (access = AccessLevel.PROTECTED)
 public class Comment extends BaseTimeEntity{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -24,7 +21,7 @@ public class Comment extends BaseTimeEntity{
     @JoinColumn(name = "user_id")
     private User user;
 
-    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "post_id")
     private Post post;
 
@@ -36,14 +33,11 @@ public class Comment extends BaseTimeEntity{
     @Column(length = 2200)
     private String content;
 
-
     @Builder
-    public Comment(Long id, User user, Post post, Comment parentComment, String content){
-        this.id = id;
+    public Comment(User user, Post post, Comment parentComment, String content) {
         this.user = user;
         this.post = post;
-        this.content = content;
         this.parentComment = parentComment;
+        this.content = content;
     }
-
 }
