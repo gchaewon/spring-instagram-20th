@@ -32,7 +32,10 @@ public class PostLikeController{
         }
     )
     public ResponseEntity<PostLikeResponseDto> createLike(@PathVariable Long postId){
-       PostLikeResponseDto responseDto = postLikeService.createPostLike(postId);
+        // 추후 현재 로그인한 유저의 Id 가져오는 코드로 수정 예정
+        Long userId = 180L;
+
+       PostLikeResponseDto responseDto = postLikeService.createPostLike(postId, userId);
        return ResponseEntity.ok(responseDto);
     }
 
@@ -48,7 +51,10 @@ public class PostLikeController{
     }
     )
     public ResponseEntity<Void> deleteLike(@PathVariable Long postId){
-        postLikeService.deletePostLike(postId);
+        // 추후 현재 로그인한 유저의 Id 가져오는 코드로 수정 예정
+        Long userId = 180L;
+
+        postLikeService.deletePostLike(postId, userId);
         return ResponseEntity.noContent().build();
     }
 }

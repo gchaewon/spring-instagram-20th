@@ -23,20 +23,14 @@ public class PostLikeService {
 
 
     // 게시글 좋아요 여부 조회 메서드
-    public boolean getPostLike(Long postId) {
-        // 추후 현재 로그인한 유저의 Id 가져오는 코드로 수정 예정
-        Long userId = 180L;
-
+    public boolean getPostLike(Long postId, Long userId) {
         return postLikeRepository.findByPostIdAndUserId(postId, userId).isPresent();
     }
 
 
     // 게시글 좋아요 생성 메서드
     @Transactional
-    public PostLikeResponseDto createPostLike(Long postId) {
-        // 추후 현재 로그인한 유저의 Id 가져오는 코드로 수정 예정
-        Long userId = 180L;
-
+    public PostLikeResponseDto createPostLike(Long postId, Long userId) {
         // 포스트 조회
         Post post = postRepository.findById(postId)
                 .orElseThrow(() ->new CustomException(ErrorCode.NOT_FOUND, "포스트를 찾을 수 없습니다.", postId));
@@ -46,7 +40,7 @@ public class PostLikeService {
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "유효하지 않은 유저로부터 요청입니다.", userId));
 
         // 이미 좋아요가 존재하는지 확인
-        if (postLikeRepository.findByPostIdAndUserId(postId, userId).isPresent()) {
+        if (getPostLike(postId, userId)) {
             throw new CustomException(ErrorCode.CONFLICT, "이미 좋아요가 존재합니다.", postId); // 중복 생성 예외
         }
 
@@ -63,10 +57,7 @@ public class PostLikeService {
 
     // 게시글 좋아요 삭제 메서드
     @Transactional
-    public void deletePostLike(Long postId) {
-        // 추후 현재 로그인한 유저의 Id 가져오는 코드로 수정 예정
-        Long userId = 180L;
-
+    public void deletePostLike(Long postId, Long userId) {
         // 포스트 조회
         Post post = postRepository.findById(postId)
                 .orElseThrow(() ->new CustomException(ErrorCode.NOT_FOUND, "포스트를 찾을 수 없습니다.", postId));
