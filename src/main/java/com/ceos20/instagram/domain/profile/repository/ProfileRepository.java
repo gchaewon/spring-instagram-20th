@@ -1,6 +1,7 @@
 package com.ceos20.instagram.domain.profile.repository;
 
 import com.ceos20.instagram.domain.profile.domain.Profile;
+import com.ceos20.instagram.domain.user.domain.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

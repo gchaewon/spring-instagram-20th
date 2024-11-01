@@ -5,34 +5,24 @@ import com.ceos20.instagram.domain.profile.domain.Profile;
 import com.ceos20.instagram.domain.user.domain.User;
 import lombok.Builder;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 
 @Getter
-@NoArgsConstructor
+@Builder
 public class ProfileRequestDto {
-    private String link;
-    private String introduce;
-    private Gender gender;
-    private Boolean publicOption;
-    private String profileImageUrl;
+    private String link; // 링크
+    private String introduce; // 소개글
+    private Gender gender; // 성별
+    private Boolean publicOption; // 프로필 공개 여부
+    private String profileImageUrl; // 프로필 이미지
 
-    @Builder
-    public ProfileRequestDto(String link, String introduce, Gender gender,
-                                   Boolean publicOption, String profileImageUrl) {
-        this.link = link;
-        this.introduce = introduce;
-        this.gender = gender;
-        this.publicOption = publicOption;
-        this.profileImageUrl = profileImageUrl;
-    }
-    public Profile toEntity(User user) {
+    public static Profile toEntity(ProfileRequestDto dto, User user) {
         return Profile.builder()
-                .user(user) // User 객체를 매개변수로 받음
-                .link(this.link)
-                .introduce(this.introduce)
-                .gender(this.gender)
-                .publicOption(this.publicOption)
-                .profileImageUrl(this.profileImageUrl)
+                .user(user) // 프로필을 만든 사용자
+                .link(dto.getLink())
+                .introduce(dto.getIntroduce())
+                .gender(dto.getGender())
+                .publicOption(dto.getPublicOption())
+                .profileImageUrl(dto.getProfileImageUrl())
                 .build();
     }
 }
