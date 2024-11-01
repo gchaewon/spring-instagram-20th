@@ -2,7 +2,7 @@ package com.ceos20.instagram.domain.postLike.domain;
 
 import com.ceos20.instagram.global.BaseTimeEntity;
 import com.ceos20.instagram.domain.post.domain.Post;
-import com.ceos20.instagram.domain.user.domain.User; // User import 추가
+import com.ceos20.instagram.domain.user.domain.User;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -18,7 +18,7 @@ public class PostLike extends BaseTimeEntity {
     @Column(name = "post_like_id")
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name="post_id")
     private Post post;
 
