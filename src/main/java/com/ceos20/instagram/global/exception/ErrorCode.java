@@ -16,6 +16,9 @@ public enum ErrorCode {
     // 권한 없음
     FORBIDDEN(HttpStatus.FORBIDDEN, "권한이 없습니다."),
 
+    // 리소스 충돌
+    CONFLICT(HttpStatus.CONFLICT, "이미 생성된 리소스입니다."),
+
     // 리소스 찾을 수 없음
     NOT_FOUND(HttpStatus.NOT_FOUND, "요청한 리소스를 찾을 수 없습니다."),
 
