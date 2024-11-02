@@ -94,7 +94,10 @@ public class PostController {
     })
     public ResponseEntity<PostResponseDto> updatePost(@PathVariable Long postId,
                                                       @RequestBody PostUpdateRequestDto requestDto){
-        PostResponseDto responseDto = postService.updatePost(postId, requestDto);
+        // 현재 유저의 id 값을 가져오는 코드로 수정 예정
+        Long userId = 181L;
+
+        PostResponseDto responseDto = postService.updatePost(postId, userId, requestDto);
         return ResponseEntity.ok(responseDto);
     }
 
@@ -106,7 +109,10 @@ public class PostController {
             @ApiResponse(responseCode = "204", description = "게시글 삭제 성공")
     })
     public ResponseEntity<Void> deletePost(@PathVariable Long postId){
-        postService.deletePost((postId));
+        // 현재 유저의 id 값을 가져오는 코드로 수정 예정
+        Long userId = 181L;
+
+        postService.deletePost(postId, userId);
         return ResponseEntity.noContent().build();
     }
 }

@@ -56,7 +56,7 @@ public class PostService {
         return PostResponseDto.from(post, images); // response DTO 반환
     }
 
-    // 특정 유저의 포스트 전체  조회 메서드
+    // 특정 유저의 포스트 전체 조회 메서드
     public List<PostResponseDto> getPostsByUserId(Long userId){
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "유효하지 않은 유저로부터 요청입니다.", userId));
@@ -83,17 +83,23 @@ public class PostService {
 
     // 포스트 수정 메서드
     @Transactional
-    public PostResponseDto updatePost(Long postId, PostUpdateRequestDto requestDto) {
+    public PostResponseDto updatePost(Long postId, Long userId, PostUpdateRequestDto requestDto) {
         // 포스트 아이디로 조회
-        Post existingPost = postRepository.findById(postId)
+        Post targetPost = postRepository.findById(postId)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "포스트를 찾을 수 없습니다.", postId));
+
+        // 수정 요청 유저와 포스트 작성 유저가 같은지 확인
+        Long writerId = targetPost.getUser().getId();
+        if (!writerId.equals(userId)) {
+            throw new CustomException(ErrorCode.UNAUTHORIZED, "포스트를 수정할 권한이 없습니다.", userId);
+        }
 
         // 업데이트 요청 반영한 포스트 객체 생성
         Post updatedPost = Post.builder()
-                .id(existingPost.getId())
-                .user(existingPost.getUser())
-                .content(requestDto.getContent() != null ? requestDto.getContent() : existingPost.getContent()) // content 업데이트
-                .commentOption(requestDto.getCommentOption() != null ? requestDto.getCommentOption() : existingPost.getCommentOption()) // 댓글 옵션 업데이트
+                .id(targetPost.getId())
+                .user(targetPost.getUser())
+                .content(requestDto.getContent() != null ? requestDto.getContent() : targetPost.getContent()) // content 업데이트
+                .commentOption(requestDto.getCommentOption() != null ? requestDto.getCommentOption() : targetPost.getCommentOption()) // 댓글 옵션 업데이트
                 .build();
 
         // 포스트 저장
@@ -111,10 +117,16 @@ public class PostService {
 
     // 포스트 삭제 메서드
     @Transactional
-    public void deletePost(Long postId) {
+    public void deletePost(Long postId, Long userId) {
         // 포스트 아이디로 조회
         Post targetPost = postRepository.findById(postId)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "포스트를 찾을 수 없습니다.", postId));
+
+        // 삭제 요청 유저와 포스트 작성 유저가 같은지 확인
+        Long writerId = targetPost.getUser().getId();
+        if (!writerId.equals(userId)) {
+            throw new CustomException(ErrorCode.UNAUTHORIZED, "포스트를 삭제할 권한이 없습니다.", userId);
+        }
 
         // 관련 이미지 삭제
         imageService.deleteImagesByPostId(postId);
