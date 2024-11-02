@@ -1,6 +1,7 @@
 package com.ceos20.instagram.domain.follow.domain;
 
 import com.ceos20.instagram.domain.user.domain.User;
+import com.ceos20.instagram.global.BaseTimeEntity;
 import jakarta.persistence.*;
 import lombok.Builder;
 import lombok.Getter;
@@ -10,7 +11,7 @@ import lombok.AccessLevel;
 @Entity
 @NoArgsConstructor (access = AccessLevel.PROTECTED)
 @Getter
-public class Follow {
+public class Follow extends BaseTimeEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name="follow_id")
