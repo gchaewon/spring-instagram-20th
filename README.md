@@ -561,3 +561,775 @@ class UserServiceTest {
 }
 ```
 
+## 4주차 (9/30 - 11/2)
+
+## 🛠️ Refactoring
+
+서비스 구현을 완료하고, API 개발에 앞서서 지금까지 코드를 다시 돌아보고 리팩토링했다.
+
+리팩토링에서 중점적으로 둔 요소는 아래와 같다.  그 외에도 컨트롤러 개발하면서 엄청 자잘한 수정을 많이 했다.
+
+**Entity**
+
+- BaseTimeEntity 적용
+  
+**DTO**
+
+- 불필요한 DTO 삭제
+- DTO에 정적 팩토리 메서드 적용하기
+- 응답에 필요한 ResponseDTO 적절하게 만들기
+
+**Service**
+
+- Service에서 Transactional(readonly=true) 전역 설정
+- GlobalException 적용하기
+- PostService 게시글 수정 중 이미지 관련 역할 분리
+
+---
+
+### Entity Refactoring
+
+저번 코드 리뷰에서 시간 관련 필드를 묶어서 BaseTimeEntity로 만들고 이를 전역에서 적용해보라는 피드백이 있었다.
+
+그래서 global 패키지에 BaseTimeEntity 클래스를 생성하고, Entity에서 상속 받아 사용했다.
+
+⭐️필드가 비는 오류가 있었는데, Application에서 `@EnableJpaAuditing`을 붙여야 제대로 동작한다.
+
+**BaseTimeEntity**
+
+```java
+...
+@Getter
+@MappedSuperclass
+@SuperBuilder
+@NoArgsConstructor
+@EntityListeners(AuditingEntityListener.class)
+
+public abstract class BaseTimeEntity {
+    @CreatedDate
+    private LocalDateTime createdAt;
+
+    @LastModifiedDate
+    private LocalDateTime modifiedAt;
+}
+```
+
+---
+
+### DTO Refactoring
+실제 Controller 개발로 가니, 불필요한 DTO가 많았다.
+
+ResponseDTO로 적합하지 못한 것들이 많아서, 추가 및 수정을 거쳤다.
+
+리팩토링에 앞서서 DTO에 대해 더 찾아봤다.
+
+**DTO에 어디까지 포함해야는가?**
+
+DTO를 사용하는 이유 ==  불필요한 데이터를 노출하지 않고 필요한 데이터만 내보내기 위함
+
+따라서 비즈니스 로직에서 필요하지 않은 데이터, 노출할 필요가 없는 데이터는 DTO에 포함하지 않아야한다.
+
+**DTO는 어디까지 사용할 수 있는가?**
+
+DTO를 Repository에서 사용하는 것은 지양하는 것이 좋다. 
+
+Repository를 Entity의 영속성을 관장해야하기 떄문에, DTO - Entity 사이의 변환 로직은 다른 계층에서 진행하는 것이 적합하다.
+
+그렇다면 Controller와 Service 레이어 중 어느 곳이 적합할까?
+
+**Controller에서 Entity - DTO 변환을 할 때 단점**
+
+1. Entity의 불필요한 데이터가 Controller까지 넘어오게 됨
+2. 여러 domain을 조회하는 경우, 하나의 controller가 의존하는 서비스가 많아짐
+3. 여러 doamin을 조합해서 DTO를 생성하는 경우, service가 controller에 포함됨
+
+이러한 단점이 있기 때문에, Service 레이어에 변환 로직을 포함하는 것이 좋다.
+
+### DTO에 정적 팩토리 메서드 적용하기
+
+서비스 레이이어에서 DTO - Entity간 변환시 정적 팩토리 메서드를 적용했다.
+
+**정적 팩토리 메서드란?** 
+
+정적 팩토리 메서드는 객체 생성 역할을 하는 클래스 메서드이다. 일반 생성자 대신 정적 팩토리 메서드를 사용해야하는 이유가 뭘까?
+
+**일반 생성자와 차이점**
+
+**1. 이름을 가질 수 있음**
+
+정적 팩토리 메서드를 사용하면 메서드 이름에 객체 생성 목적을 담을 수 있다. 
+
+매개변수만으로는 생성자에서 반환되는 객체 특성을 제대로 표현하기 어렵다.
+
+**일반 생성자 new 사용**
+
+```java
+public static void main(String[] args) {
+    // 검정색 테슬라 자동차 
+    Car teslaCar = new Car("Tesla");
+
+    // 빨간색 BMW 자동차
+    Car bmwRedCar = new Car("BMW", "Red");
+}
+```
+
+**정적 팩토리 메서드 적용**
+
+정적 팩토리 메서드를 사용하는 경우 생성자 이름을 통해 그 목적을 잘 표현할 수 있다.
+
+기본 생성자는 private으로 Class 안에서만 접근할 수 있게 변경한다.
+
+```java
+class Car {
+	...
+	// 정적 팩토리 메서드
+	public static Car brandBlackFrom(String brand) {
+	    return new Car(brand, "black");
+	}
+	
+	// 정적 팩토리 메서드
+	public static Car brandColorOf(String brand, String color) {
+	    return new Car(brand, color);
+	}
+}
+```
+
+**정적 팩토리 메서드의 네이밍 컨벤션** 
+
+- `from`: 하나의 객체 (다른 타입)에서 데이터를 가져와 새 객체를 만들 때 사용
+- `of`: 주로 여러 매개 변수를 받아 객체를 생성할 때 사용
+
+Entity -> DTO로 변환할 때는 관례적으로 `from`을 사용한다.
+
+DTO -> Entity를 변환할 때는 `toEntity` 를 사용한다. 
+
+- 정적 팩토리 메서드 네이밍 규칙에는 없지만 변환 로직 의미를 잘 나타내기 때문에 `toEntity`로 네이밍
+
+```java
+public class ProfileRequestDto {
+		// ... 필드
+    public static Profile toEntity(ProfileRequestDto dto, User user) {
+        return Profile.builder()
+                .user(user) // 프로필을 만든 사용자
+                .link(dto.getLink())
+                .introduce(dto.getIntroduce())
+                .gender(dto.getGender())
+                .publicOption(dto.getPublicOption())
+                .profileImageUrl(dto.getProfileImageUrl())
+                .build();
+    }
+}
+
+public class ProfileResponseDto {
+		// ... 필드
+    public static ProfileResponseDto from(Profile profile) {
+        return ProfileResponseDto.builder()
+                .id(profile.getId())
+                .link(profile.getLink())
+                .introduce(profile.getIntroduce())
+                .gender(profile.getGender())
+                .publicOption(profile.getPublicOption())
+                .profileImageUrl(profile.getProfileImageUrl())
+                .build();
+    }
+}
+```
+
+---
+
+### Service Refactoring
+
+Controller 개발을 같이 하면서 검증 로직이 추가로 필요한 경우가 많았다.
+
+PostService의 수정 메서드처럼, 여러 책임을 가지고 있는 경우 분리하는 과정을 거쳤다.
+
+**@Transactional(readOnly = true) 전역 설정 이유?**
+
+서비스 코드 수정 전에, 저번 코드 피드백 중에 있었던 `@Transactional(readOnly = true)`  전역 설정을 먼저 했다.
+
+아래 코드처럼 Service 클래스 전체 readOnly 옵션을 주고, 실제 DB 변경이 있는 메서드에만 
+
+`@Transactional` 를 적용하면 된다.
+
+```java
+@Transactional(readOnly = true)
+public class PostService {
+    private final PostRepository postRepository;
+    private final UserRepository userRepository;
+    private final ImageService imageService;
+
+    // 포스트 생성 메서드
+    @Transactional
+		public PostResponseDto createPost(Long userId, PostRequestDto requestDto) {
+			....
+		}
+		....
+}
+```
+
+`@Transactional(readOnly = true)` 를 전역 설정하는 경우 아래와 같은 이점이 있다.
+
+- 일관된 트랜잭션
+    
+    서비스 클래스 메서드에 개별적으로 적용할 필요가 없어 유지 보수가 쉬워진다.
+    
+- 불필요한 변경 방지
+    
+    메서드 내 실수로 데이터 작업 변경이 시도될 경우, 전역 설정을 통해 오류를 발생시켜 데이터 무결성을 유지할 수 있다.
+    
+
+---
+
+### GlobalException 적용
+
+Global Exception은 코드 중복을 줄이고 일관된 에러 응답 형식을 제공하기 위해 사용한다.
+
+이를 통해 예외처리 로직을 분리하여, 유지보수성을 향상시킬 수 있다.
+
+### GlobalExceptionHandler
+
+ GlobalExceptionHandler를 사용하면, 매번 예외처리 로직 작성을 하지 않아도된다. 
+
+일관된 응답, 유지보수성 향상 등의 장점이 있다.
+
+`@RestControllerAdvice`:  `@ControllerAdvice`+ `@ResponseBody` 가 합쳐진 어노테이션이다.
+
+**ErrorResponse**
+
+먼저 예외 시 Response 틀이 되어줄 ErrorResponse 생성했다.
+
+예외 발생 시간, 상태, 메시지 포함하여 아래와 같은 구성으로 만들었다.
+
+```java
+@Getter
+
+public class ErrorResponse {
+		private final LocalDateTime timestamp = LocalDateTime.now();
+		private final int statusCode;
+		private final String error;
+		private final String message;
+	
+		public ErrorResponse(ErrorCode errorCode) {
+			this.statusCode = errorCode.getHttpStatus().value();
+			this.error = errorCode.getHttpStatus().name();
+			this.message = errorCode.getMessage();
+		}
+}
+```
+
+**RestApiException**
+
+직접 정의한 예외를 다룰 때 사용할 RuntimeException 하위 클래스로 ErrorCode 를 통해 상태코드, 메시지를 담는다.
+
+```java
+@Getter
+@RequiredArgsConstructor
+public class RestApiException extends RuntimeException {
+	private final ErrorCode errorCode;
+}
+```
+
+**ErrorCode**
+
+어떤 종류의 예외가 발생했는지에 대한 정보를 enum 타입으로 정의했다.
+
+```java
+@Getter
+@RequiredArgsConstructor
+public enum ErrorCode {
+    // 잘못된 요청
+    BAD_REQUEST(HttpStatus.BAD_REQUEST, "잘못된 요청입니다."),
+
+    // 인증 실패
+    UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "인증이 필요합니다."),
+
+    // 권한 없음
+    FORBIDDEN(HttpStatus.FORBIDDEN, "권한이 없습니다."),
+
+    // 리소스 충돌
+    CONFLICT(HttpStatus.CONFLICT, "이미 생성된 리소스입니다."),
+
+    // 리소스 찾을 수 없음
+    NOT_FOUND(HttpStatus.NOT_FOUND, "요청한 리소스를 찾을 수 없습니다."),
+
+    // 서버 에러
+    INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 오류가 발생했습니다.");
+
+    private final HttpStatus httpStatus;
+    private final String message;
+}
+
+```
+
+**GlobalExceptionHandler**
+
+위 파일들을 다 만들고 나서, 이를 바탕으로 전역예외처리 handler 만들었다.
+
+```java
+...
+@RestControllerAdvice
+@Slf4j
+public class GlobalExceptionHandler {
+    // CustomException에 존재하는 예외 처리
+    @ExceptionHandler(CustomException.class)
+    public ResponseEntity<ErrorResponse> handleCustomException(CustomException exception) {
+        ErrorCode errorCode = exception.getErrorCode();
+
+        // ErrorCode에서 상태 코드와 메시지를 가져와 ErrorResponse 생성 후 응답
+        ErrorResponse response = new ErrorResponse(errorCode.getHttpStatus().value(), errorCode.getMessage());
+        return new ResponseEntity<>(response, errorCode.getHttpStatus());
+    }
+}
+```
+
+### **CustomException**
+
+서비스에서 자주 사용하는 조회 실패시 예외처리를 CustomException을 통해 global하게 만들 수 있다.
+
+RuntimeException을 상속 받아 CustomException 클래스를 정의한다.
+
+나는 예외 정보를 받아서, 그에 맞는 errorcode와 메시지, 타겟 정보를 반환하는 방식으로 구성하였다.
+
+```java
+...
+@Getter
+public class CustomException extends RuntimeException {
+    private final ErrorCode errorCode;
+
+    // ErrorCode 받아서 예외 메시지 저장
+    public CustomException(ErrorCode errorCode){
+        super(errorCode.getMessage());
+        this.errorCode = errorCode;
+    }
+    // 에러 추가 정보를 받아 저장
+    public CustomException(ErrorCode errorCode, String message, Object target) {
+        super(String.format("%s - %s", message, target)); // 메시지에 타겟 정보를 포함
+        this.errorCode = errorCode;
+    }
+}
+
+```
+
+이후 서비스에서 해당 exception을 사용하면 된다.
+
+```java
+// userId로 사용자 조회
+User user = userRepository.findById(userId)
+        .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "유효하지 않은 유저로부터 요청입니다.", userId));
+
+```
+
+---
+
+## ☕️ Controller 개발
+
+4주차 과제인 REST API 만들기를 진행했다.
+
+아직 유저 인증 부분을 하지 않았기 때문에 유저 관련 기능은 만들지 못했다.
+
+`Swagger`를 통해서 효율적으로 API 문서화, 테스트를 할 수 있었다.
+
+먼저 개발하기 전에 API 명세서를 작성해서, URI와 메서드 방식 등을 미리 정리했다.
+
+<img width="500" src= "https://github.com/user-attachments/assets/bd9bcd3e-3d4f-470b-ae37-7f010d6fb32a">
+### Swagger 연동
+
+**Swagger란?**
+
+OepnAPI를 중심으로 REST API 설계, 빌드, 문서화할 수 있는 오픈 소스
+
+문서 화면 UI에서 바로 API 테스트가 가능하다.
+
+1. **Configuration 추가**
+
+swagger를 사용하려면 먼저 configuration을 추가해야한다. 
+
+```java
+....
+
+@Configuration
+public class SwaggerConfig {
+    @Bean
+    public OpenAPI openAPI() {
+        return new OpenAPI()
+                .components(new Components())
+                .info(apiInfo());
+    }
+
+    // API 정보
+    private Info apiInfo() {
+        return new Info()
+                .title("Instagram API") // API 제목 
+                .description("Instagram API Doc") // 설명
+                .version("1.0.0"); // API 버전
+    }
+}
+```
+
+1. **어노테이션 정리**
+
+`Swagger`를 적용하기 전에 자주 사용하는 어노테이션을 정리했다.
+
+- **@Tag(name=“카테고리 명”, description =“카테고리 설명”)**
+    
+    API 엔드포인트에 태그를 할당하고, 태그를 기반으로 엔드포인트 그룹화 -> 문서 내부에서 카테고리 생성
+    
+    ```java
+    @Tag(name = "Post Controller", description = "게시글 컨트롤러 \n 작성, 수정, 삭제, 조회 로직을 포함합니다.")
+    public class PostController {
+    	....
+    }
+    ```
+    
+- **@Operation(summary=“작업 요약”, description=“작업 구체적 설명”)**
+    
+    API 엔드 포인트 작업에 대한 설명 추가, 세부 정보 제공
+    
+- **@ApiResponse(responseCode = “200”,  description = “조회 성공”)**
+    
+    API 응답, 설명, 상태 코드 정의
+    
+- **@Schema(description = “속성 설명”, example = “예시 값 정의”)**
+    
+    API 모델 속성 정의 및 문서화에 사용 (명세서 작성 기반이 됨)
+    
+    직접 DTO 클래스에서 @Schema 부분을 작성하면 API 명세서 작성을 자동으로 해준다. 
+    
+    ```java
+       // 게시글 작성
+        @Operation(summary = "게시글 작성")
+        @PostMapping("/posts")
+        @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "게시글 작성 성공",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = PostResponseDto.class))
+            ),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 유저의 요청입니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ResponseTemplate.class))
+            )
+        })
+        public ResponseEntity<PostResponseDto> createPost(@RequestBody PostRequestDto requestDto){
+    				....
+        }
+    ```
+    
+
+이런식으로 [localhost:8080/swagger-ui/index-html](http://localhost:8080/swagger-ui/index.html) 접속 후 API 테스트와 문서화된 API를 확인할 수 있다.
+
+<img width="500" src="https://github.com/user-attachments/assets/90976a55-3695-47fd-bf94-f967e3a73b9d">
+
+Try it out 버튼을 누르면 실제 API 테스트가 가능하다.
+
+<img width="500" src="https://github.com/user-attachments/assets/63ff963b-a5f0-40e2-8b11-963b5ca1afb2">
+
+아래는 API 중 글과 관련된 API에 대한 상세 설명과 테스트 결과이다.
+
+### **Create API**
+
+**게시글 작성 API**
+
+로그인한 유저의 정보를 받아오는 부분은 고정 값으로 설정했고 추후 수정할 예정이다.
+
+```java
+  // 게시글 작성
+  @Operation(summary = "게시글 작성")
+  @PostMapping("/posts")
+  @ApiResponses({
+      @ApiResponse(responseCode = "200", description = "게시글 작성 성공",
+              content = @Content(mediaType = "application/json",
+                      schema = @Schema(implementation = PostResponseDto.class))
+      ),
+      @ApiResponse(responseCode = "404", description = "존재하지 않는 유저의 요청입니다.",
+              content = @Content(mediaType = "application/json",
+                      schema = @Schema(implementation = ResponseTemplate.class))
+      )
+  })
+  public ResponseEntity<PostResponseDto> createPost(@RequestBody PostRequestDto requestDto){
+      // 현재 유저의 id 값을 가져오는 코드로 수정 예정
+      Long userId = 180L;
+      PostResponseDto responseDto = postService.createPost(userId, requestDto);
+      return ResponseEntity.ok(responseDto);
+  }
+```
+
+**API와 대응되는 서비스 코드**
+
+```java
+// 포스트 생성 메서드
+@Transactional
+public PostResponseDto createPost(Long userId, PostRequestDto requestDto) {
+    User user = userRepository.findById(userId)
+            .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "유효하지 않은 유저로부터 요청입니다.", userId));
+
+    // dto -> entity 변환
+    Post post = requestDto.toEntity(requestDto, user);
+
+    // 포스트 저장
+    Post savedPost = postRepository.save(post);
+
+    // 이미지 생성 및 저장
+    List<Image> images = imageService.createImages(requestDto.getImageUrls(), savedPost);
+
+    return PostResponseDto.from(savedPost, images); // response DTO 반환
+}
+```
+
+**API 테스트 결과**
+
+Response가 좀 지저분해서, ResponseDTO를 수정해서 다음주까지 리팩토링하려고한다.
+
+<img width="500" src="https://github.com/user-attachments/assets/33d080bf-8581-472f-8b59-a014b7898a7a">
+
+### **Get API**
+
+**특정 게시글 세부 조회 API**
+
+게시글 고유 번호를 받아서 조회한다.
+
+```java
+  // 게시글 조회
+  @Operation(summary = "게시글 조회")
+  @GetMapping("/posts/{postId}")
+  @ApiResponses({
+          @ApiResponse(responseCode = "200", description = "게시글 조회 성공",
+                  content = @Content(mediaType = "application/json",
+                          schema = @Schema(implementation = PostResponseDto.class))
+          ),
+          @ApiResponse(responseCode = "404", description = "존재하지 않는 게시글입니다.",
+                  content = @Content(mediaType = "application/json",
+                          schema = @Schema(implementation = ResponseTemplate.class))
+          )
+  })
+  public ResponseEntity<PostResponseDto> getPost(@PathVariable Long postId){
+      PostResponseDto responseDto = postService.getPost(postId);
+      return ResponseEntity.ok(responseDto);
+  }
+```
+
+**API와 대응되는 서비스 코드**
+
+```java
+// 포스트 조회 메서드
+public PostResponseDto getPost(Long postId) {
+    Post post = postRepository.findById(postId)
+            .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "포스트를 찾을 수 없습니다.", postId));
+
+    // 포스트 아이디와 맵핑되는 이미지 리스트
+    List<Image> images = imageService.getImagesByPostId(postId);
+
+    return PostResponseDto.from(post, images); // response DTO 반환
+}
+```
+
+**API 테스트 결과**
+
+<img width="500" src="https://github.com/user-attachments/assets/16e45f9e-9c6b-495b-be80-6af3709bfe79"/>
+
+**유저의 게시글 전체 조회하는 API** 
+
+```java
+  // 특정 유저의 게시글 목록 조회
+  @Operation(summary = "특정 유저의 게시글 전체 조회")
+  @GetMapping("/users/{userId}/posts")
+  @ApiResponses({
+          @ApiResponse(responseCode = "200", description = "특정 유저의 전체 게시글 조회 성공",
+                  content = @Content(mediaType = "application/json",
+                          schema = @Schema(implementation = PostResponseDto.class))
+          ),
+          @ApiResponse(responseCode = "404", description = "작성한 글이 없습니다.",
+                  content = @Content(mediaType = "application/json",
+                          schema = @Schema(implementation = ResponseTemplate.class))
+          )
+  })
+  public ResponseEntity<List<PostResponseDto>> getPostsByUserId(@PathVariable Long userId){
+      List<PostResponseDto> posts = postService.getPostsByUserId(userId);
+      return ResponseEntity.ok(posts);
+  }
+```
+
+**API와 대응되는 서비스 코드**
+
+이미지 조회에 대한 부분을 이미지 서비스로 분리하여 처리하였다.
+
+```java
+// 특정 유저의 포스트 전체 조회 메서드
+public List<PostResponseDto> getPostsByUserId(Long userId){
+    User user = userRepository.findById(userId)
+            .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "유효하지 않은 유저로부터 요청입니다.", userId));
+
+    // 유저의 모든 포스트 조회
+    List<Post> posts = postRepository.findByUserId(userId);
+
+    // 조회한 포스트 ID 리스트
+    List<Long> postIds = posts.stream()
+            .map(Post::getId)
+            .collect(Collectors.toList());
+
+    // 조회한 포스트의 이미지 전체 리스트
+    List<List<Image>> images = imageService.getImagesByPostIds(
+            posts.stream().map(Post::getId).collect(Collectors.toList()));
+
+    // 조회한 포스트와 이미지로 response DTO 생성하기
+    List<PostResponseDto> postResponseDtos = new ArrayList<>();
+    for(int i=0; i<posts.size(); i++){
+        postResponseDtos.add(PostResponseDto.from(posts.get(i), images.get(i)));
+    }
+    return postResponseDtos;
+}
+```
+
+**API 테스트 결과**
+
+<img width="500" src="https://github.com/user-attachments/assets/1cbc172f-fab8-48bc-bd8c-1b023a7a9608"/>
+
+### Delete API
+
+**게시글 삭제 API**
+
+삭제 API에서는 requestBody 없이 구성했고, response도 주지 않아서 204로 설정해두었다.
+```java
+  // 게시글 삭제
+  @Operation(summary = "게시글 삭제")
+  @DeleteMapping("/posts/{postId}")
+  @ApiResponses({
+          // 반환할 데이터 없음
+          @ApiResponse(responseCode = "204", description = "게시글 삭제 성공")
+  })
+  public ResponseEntity<Void> deletePost(@PathVariable Long postId){
+      // 현재 유저의 id 값을 가져오는 코드로 수정 예정
+      Long userId = 181L;
+
+      postService.deletePost(postId, userId);
+      return ResponseEntity.noContent().build();
+  }
+```
+
+**API와 대응되는 서비스코드**
+
+요청 유저와 글 작성 유저를 비교하여 권한 확인을 했다.
+
+글과 연결된 이미지도 삭제 되어야하므로, 이미지 삭제 호출 후 게시글 삭제하는 로직으로 구성했다.
+
+```java
+  // 포스트 삭제 메서드
+  @Transactional
+  public void deletePost(Long postId, Long userId) {
+      // 포스트 아이디로 조회
+      Post targetPost = postRepository.findById(postId)
+              .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "포스트를 찾을 수 없습니다.", postId));
+
+      // 삭제 요청 유저와 포스트 작성 유저가 같은지 확인
+      Long writerId = targetPost.getUser().getId();
+      if (!writerId.equals(userId)) {
+          throw new CustomException(ErrorCode.UNAUTHORIZED, "포스트를 삭제할 권한이 없습니다.", userId);
+      }
+
+      // 관련 이미지 삭제
+      imageService.deleteImagesByPostId(postId);
+
+      // 포스트 삭제
+      postRepository.delete(targetPost);
+  }
+```
+
+**API 테스트 결과**
+
+<img width="500" src="https://github.com/user-attachments/assets/c8891c04-7b68-43b3-8a8d-5e740ee9129a">
+
+권한이 없는 유저가 삭제 요청 시 
+
+<img width="500" src="https://github.com/user-attachments/assets/db832899-5936-4bd5-b196-86647ac8b1cc"/>
+
+### Update API
+
+게시글 수정의 경우, 필드 일부분 수정이 가능한 형태이므로 Patch 방식으로 설정했다.
+
+인스타그램 상으로 게시글의 이미지는 삭제만 가능하기 때문에, 이미지를 추가하는 로직은 넣지 않았다.
+
+**게시글 수정 API**
+
+```java
+  // 게시글 수정
+  @Operation(summary = "게시글 수정")
+  @PatchMapping("/posts/{postId}") // 필드 일부 수정 가능
+  @ApiResponses({
+          @ApiResponse(responseCode = "200", description = "게시글 수정 성공",
+                  content = @Content(mediaType = "application/json",
+                          schema = @Schema(implementation = PostResponseDto.class))
+          ),
+          @ApiResponse(responseCode = "404", description = "존재하지 않는 게시글입니다.",
+                  content = @Content(mediaType = "application/json",
+                          schema = @Schema(implementation = ResponseTemplate.class))
+          )
+  })
+  public ResponseEntity<PostResponseDto> updatePost(@PathVariable Long postId,
+                                                    @RequestBody PostUpdateRequestDto requestDto){
+      // 현재 유저의 id 값을 가져오는 코드로 수정 예정
+      Long userId = 181L;
+
+      PostResponseDto responseDto = postService.updatePost(postId, userId, requestDto);
+      return ResponseEntity.ok(responseDto);
+  }
+```
+
+**API와 대응되는 서비스 코드**
+
+삭제와 마찬가지로 수정 요청 유저와 작성 유저가 같은지 검증했다.
+
+필드 일부분 수정 로직과 이미지는 삭제 로직만 포함하였다.
+
+```java
+// 포스트 수정 메서드
+@Transactional
+public PostResponseDto updatePost(Long postId, Long userId, PostUpdateRequestDto requestDto) {
+    // 포스트 아이디로 조회
+    Post targetPost = postRepository.findById(postId)
+            .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "포스트를 찾을 수 없습니다.", postId));
+
+    // 수정 요청 유저와 포스트 작성 유저가 같은지 확인
+    Long writerId = targetPost.getUser().getId();
+    if (!writerId.equals(userId)) {
+        throw new CustomException(ErrorCode.UNAUTHORIZED, "포스트를 수정할 권한이 없습니다.", userId);
+    }
+
+    // 업데이트 요청 반영한 포스트 객체 생성
+    Post updatedPost = Post.builder()
+            .id(targetPost.getId())
+            .user(targetPost.getUser())
+            .content(requestDto.getContent() != null ? requestDto.getContent() : targetPost.getContent()) // content 업데이트
+            .commentOption(requestDto.getCommentOption() != null ? requestDto.getCommentOption() : targetPost.getCommentOption()) // 댓글 옵션 업데이트
+            .build();
+
+    // 포스트 저장
+    Post savedPost = postRepository.save(updatedPost);
+
+    // 이미지 서비스 호출하여 이미지 삭제
+    if (requestDto.getImageIdList() != null) { // 삭제할 이미지가 있을 때만 수행
+        imageService.deleteImagesByIds(requestDto.getImageIdList());
+    }
+    // 이미지 객체 리스트 생성
+    List<Image> images = imageService.getImagesByPostId(postId);
+
+    return PostResponseDto.from(savedPost, images);
+}
+```
+
+**API 테스트 결과**
+
+<img width="500" src="https://github.com/user-attachments/assets/1e1e5b61-097b-4195-a63a-cd33d2ab3b9a"/>
+
+권한이 없는 유저가 삭제 요청시
+
+<img width="500" src="https://github.com/user-attachments/assets/ea494dcf-6bae-428e-9ee1-dc04849e9adc"/>
+
+---
+
+## 레퍼런스
+- [DTO](https://stella-ul.tistory.com/entry/DTO%EC%9D%98-%EC%82%AC%EC%9A%A9%EB%B2%94%EC%9C%84%EB%8A%94-%EC%96%B4%EB%94%94%EA%B9%8C%EC%A7%80-%EB%98%90-DTO-%EB%B3%80%ED%99%98%EC%9D%80-%EC%96%B4%EB%94%94%EC%84%9C)
+- [정적 팩토리 메서드](https://newbie-in-softengineering.tistory.com/entry/%EC%8A%A4%ED%84%B0%EB%94%94-%EC%A0%95%EC%A0%81-%ED%8C%A9%ED%86%A0%EB%A6%AC-%EB%A9%94%EC%84%9C%EB%93%9CStatic-Factory-Method)
+- [GlobalException](https://ngwdeveloper.tistory.com/156)
+- [Swagger1](https://woo-chang.tistory.com/80)
+- [Swagger2](https://hoons-dev.tistory.com/127)
+
+
