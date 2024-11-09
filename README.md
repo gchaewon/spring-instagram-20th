@@ -1,6 +1,14 @@
 # spring-instagram-20th
 
 CEOS 20th BE study - instagram clone coding
+
+## 목차
+- [2주차 DB 설계, 도메인, 레포지토리 개발](#2주차-99---921)
+- [3주차 서비스 개발](#3주차-923---928)
+- [4주차 API 개발](#4주차-930---112)
+- [5주차 JWT토큰 기반 유저인증](#5주차-114---119)
+
+  
 ---
 
 ## 2주차 (9/9 - 9/21)
@@ -1332,7 +1340,9 @@ public PostResponseDto updatePost(Long postId, Long userId, PostUpdateRequestDto
 - [Swagger1](https://woo-chang.tistory.com/80)
 - [Swagger2](https://hoons-dev.tistory.com/127)
 
-## 4주차 (11/4 - 11/9)
+--- 
+
+## 5주차 (11/4 - 11/9)
 
 ## 🛠️ Refactoring
 
