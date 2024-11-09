@@ -17,3 +17,5 @@ spring:
         # 필드명 카멜케이스 -> DB 칼럼 생성시 스네이크케이스로 변경
         naming:
           physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+jwt:
+  secret: ${JWT}
