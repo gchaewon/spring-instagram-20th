@@ -6,14 +6,13 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import lombok.Builder;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 
 @Getter
-@NoArgsConstructor
+@Builder
 public class UserRegisterRequestDto {
     @NotBlank(message = "아이디는 필수입니다.")
-    @Pattern(message = "잘못된 아이디 형식입니다."
-            , regexp = "^[a-z0-9_.]{3,50}$") //  알파벳, 숫자,  특수 문자 (_, .)포함, 3~ 50자
+    @Pattern(message = "아이디는 알파벳, 숫자, 특수 문자 '_, .'을 포함한 3~50자로 구성되어야합니다."
+            , regexp = "^[a-z0-9_.]{3,50}$")
 
     private String username;
 
@@ -21,8 +20,8 @@ public class UserRegisterRequestDto {
     private String nickname;
 
     @NotBlank(message = "비밀번호는 필수입니다.")
-    @Pattern(message = "잘못된 비밀번호 형식입니다.",
-        regexp = "^(?=.*[A-Za-z])(?=.*[0-9])(?=.*[$@$!%*#?&])[A-Za-z[0-9]$@$!%*#?&]{8,15}") // 반드시 하나 이상 알파벳, 숫자, 특수 문자 포함 8~15자
+    @Pattern(message = "비밀번호는 하나 이상의 알파벳, 숫자, 특수 문자를 포함한 8~15자로 구성되어야합니다.",
+        regexp = "^(?=.*[A-Za-z])(?=.*[0-9])(?=.*[$@$!%*#?&])[A-Za-z[0-9]$@$!%*#?&]{8,15}")
     private String password;
 
     @NotBlank(message = "이메일은 필수입니다.")
@@ -30,27 +29,17 @@ public class UserRegisterRequestDto {
     private String email;
 
     @NotBlank(message = "전화번호는 필수입니다.")
-    @Pattern(message = "잘못된 전화번호 형식입니다.",
+    @Pattern(message = "전화번호는 01*-****-**** 로 구성되어야합니다.",
         regexp = "^01[0-9]-[0-9]{3,4}-[0-9]{4}$")
     private String phone;
 
-    @Builder
-    public UserRegisterRequestDto(String username, String nickname, String password, String email, String phone) {
-        this.username = username;
-        this.nickname = nickname;
-        this.password = password;
-        this.email = email;
-        this.phone = phone;
-    }
-
-    public User toEntity(String encodedPassword) {
+    public static User toEntity(UserRegisterRequestDto requestDto, String encodedPassword) {
         return User.builder()
-                .username(this.username)
-                .nickname(this.nickname)
+                .username(requestDto.getUsername())
+                .nickname(requestDto.getNickname())
                 .password(encodedPassword) // 암호화된 비밀번호 저장
-                .email(this.email)
-                .phone(this.phone)
+                .email(requestDto.getEmail())
+                .phone(requestDto.getPhone())
                 .build();
     }
-
 }
