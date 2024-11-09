@@ -31,7 +31,7 @@ class UserServiceTest {
 
     @BeforeEach
     void setUp() {
-        userService = new UserService(userRepository, passwordEncoder); // PasswordEncoder 주입
+        userService = new UserService(userRepository);
     }
 
     @Test
