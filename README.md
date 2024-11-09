@@ -1332,4 +1332,931 @@ public PostResponseDto updatePost(Long postId, Long userId, PostUpdateRequestDto
 - [Swagger1](https://woo-chang.tistory.com/80)
 - [Swagger2](https://hoons-dev.tistory.com/127)
 
+## 4주차 (11/4 - 11/9)
 
+## 🛠️ Refactoring
+
+### Response Template 통일
+
+ResponseTemplate을 통일하고, data 부분에 DTO를 넣어서 보내는 구조로 통일했다.
+
+몇 API 중에서는 DTO를 따로 만들지 않고 바로 보내거나 데이터가 없는 경우가 있어서, 제너릭 타입으로 만들었다.
+
+돌려 보낼 data가 없는 경우 (responseDTO가 없음) data 필드가 null로 가는 문제가 있었다.
+
+`@JsonInclude(JsonInclude.Include.NON_NULL)` 옵션을 줘서 null인 필드는 제외하는 방식으로 해결했다.
+
+```json
+{
+    "status": 200,
+    "success": true,
+    "message": "로그인 성공",
+    "data": {
+        "userId": 201,
+        "username": "testuser",
+        "accessToken": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0dXNlciIsImF1dGgiOiIiLCJleHAiOjE3MzExMzc5NTR9.0HkUQZ6vsgXMgKzAdwJzkdg0k5cKHgGtEyNvCBSzUCI",
+        "refreshToken": "eyJhbGciOiJIUzI1NiJ9.eyJleHAiOjE3MzExMzc5NTR9.A52cbEHErV-f8tU57HCsxLHHelTFoi9wqhCb0f94ypA"
+    }
+}
+```
+
+```java
+package com.ceos20.instagram.global;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.Builder;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+
+@JsonInclude(JsonInclude.Include.NON_NULL) // null 값을 가진 필드를 제외
+@Builder
+public class ResponseTemplate<T> {
+    public int status;
+    public boolean success;
+    public String message;
+    public T data;
+
+    public static <T> ResponseEntity<ResponseTemplate<T>> createTemplate(HttpStatus status, String message, T data) {
+        ResponseTemplate<T> responseTemplate = ResponseTemplate.<T>builder()
+                .status(status.value())
+                .success(true)
+                .message(message)
+                .data(data)
+                .build();
+
+        return ResponseEntity
+                .status(status)
+                .body(responseTemplate);
+    }
+}
+
+```
+
+---
+## 인증 방식 조사 
+
+### Cookie & Session
+
+**등장 배경**
+
+HTTP 프로토콜은 Stateless, Connectionless 라는 특징을 가지고 있음.
+
+이러한 특징은 서버에 상태 정보를 저장하지 않아 서버 자원을 절약할 수 있다는 장점이 있음
+
+하지만 사용자를 식별할 수 없어서 같은 사용자임에도 매번 사용자를 다르게 인식하는 문제점이 있고 
+
+이를 보완하기 위해 나온 것이 Cookie와 Session
+
+**Cookie**
+
+**Client-Stateful** 방식, **사용자 웹 브라우저 (Client)**에 서버 대신 필요한 상태 정보를 저장하는 방법
+
+클라이언트 요청 후 서버에서 발급한 정보를 클라이언트에서 저장하고, 요청 마다 함께 보내서 사용
+
+**동작 과정**
+
+서버가 저장하고자 하는 정보를 Set-Cookie라는 Header 속성으로 응답에 포함하여 돌려줌 
+
+→ 사용자 웹 브라우저가 Cookie에 해당 정보를 저장하고 요청 시 함께 보내는 구조
+
+**보안상 문제점**
+
+- Cookie는 Javascript를 통해서 탈취가 가능함
+    - HTTP-Only 옵션을 사용해서 XSS (js를 통한 스크립트 공격)을 막을 수 있음
+- server → client cookie 정보 전달 과정에서 sniffing 위험이 있음
+    - Secure 옵션을 통해 HTTPS를 통한 통신에만 쿠키를 보내게해서 sniffing 방지 가능
+
+---
+
+**Session**
+
+쿠키와 다르게 **Server-Stateful** 방식으로 **서버 측에 인증 정보를 저장**하는 방식
+
+서버는 클라이언트 로그인 요청에 대한 응답 시 ****인증 정보는 서버에 저장, 사용자 식별자인 **session_id를 쿠키에 담아서 전송** 
+
+클라이언트는 요청을 보낼 때 마다 session_id를 함께 담아서 보내고, 이를 통해 서버는 사용자 식별 
+
+**동작 과정**
+
+1. 클라이언트가 첫 요청을 보냄, 서버에서는 session_id 쿠키 값이 없으므로 새로 발급해서 응답함
+2. 클라이언트는 요청마다 session_id 값을 헤더 쿠키에 넣어서 전달
+3. 서버는 session_id로 사용자 식별
+
+<img width="500" src="https://github.com/user-attachments/assets/824d4d41-9a18-4dbe-be35-af1f86c0b6c8"/>
+
+---
+
+### JWT
+
+**Json Web Token**으로 인터넷 표준 인증 방식, 쿠키와의 차이는 JWT는 **서명이 된** 토큰이라는 점
+
+인증에 필요한 정보를 Token에 담아 암호화
+
+**구성 요소 (xxxx.yyyy.zzzz)**
+
+구성 요소가 .으로 구분되어 있는 형태
+
+- Header
+    - 토큰 타입, 서명 생성 알고리즘 종류
+- Payload
+    - 토큰에 대한 property를 {key:value}로 저장 (Claim)
+    - payload에는 민감한 정보를 담지 않도록 해야함
+        
+        (Header, Payload는 json이 단순 디코딩된 형태이기 때문)
+        
+- Signature
+    
+    (디코딩된 Header+Payload)를 서버의 개인키 (발급 받은 것)으로 암호화
+    
+
+**복호화 과정**
+
+1. JWT 토큰을 클라이언트가 요청 시 헤더에 함께 보냄
+2. 서버는 토큰에서 Signature를 복호화하고, 인코딩한 Header, Payload가 JWT의 값과 일치하는지 확인
+3. 일치하다면 인증 시작
+
+**단점**
+
+- 쿠키, 세션과 다르게 base64 인코딩을 통한 정보 전달 → 전달량이 많은 경우 부하가 생길 수 있음
+- Payload는 암호화가 되어있지 않기 때문에 민감 정보를 저장할 수 없음
+- **토큰이 탈취당하면 만료시까지 대처가 불가능함**
+
+서버에 클라이언트 상태를 저장하는 session과 달리, stateless한 상황으로 토큰을 발급하면
+
+이후는 클라이언트에서 관리하는 구조.  토큰 탈취가 발생해도 서버에서 관리할 수 있는 방법이 없음
+
+→ **토큰이 탈취당하는 것을 방지하기 위해서 만료 시간을 짧게 둠**
+
+⭐️ **사용자 입장에서는 토큰 만료 시간이 짧으면 불편함 → 이를 보완하기 위해서 refresh token을 함께 발급함**
+
+**RefreshToken** 
+
+JWT를 처음 발급할 때 access token과 함께 발급하여 사용, 이름 그대로 access token을 refresh 해주는 토큰
+
+클라이언트 측에서 access Token이 만료된 것을 알았거나, 서버 측으로부터 토큰이 만료된 것을 확인 받은 경우
+
+RefreshToken을 사용해서 AccessToken을 다시 발급 받게 하는 구조
+
+access token에 비해 긴 시간 (7일 ~ 30일)을 두는 것이 특징
+
+**동작 과정**
+
+1. 클라이언트가 ID, PW로 서버에 인증 요청, 서버에서는 Refresh, Access Token 을 줌
+2. 클라이언트는 AccessToken을 헤더에 넣어 유저 인증이 필요한 API 요청을 보냄
+3. 사용 도중 AccessToken이 만료됨을 인지하고, 클라이언트에서 Refresh Token을 서버로 보냄
+4. 서버는 RefreshToken Storage에 해당 토큰이 있는지 확인하고, Access Token을 만들어서 보냄
+
+<img width="500" src="https://github.com/user-attachments/assets/b748ae68-e8cb-463f-bf3f-54ca6f10a3d3">
+
+
+---
+
+### OAuth 2.0
+
+사용자가 어플리케이션에 ID, PW를 제공하지 않고 신뢰할 수 있는 **외부 어플리케이션 (Naver, Google, Kakao 등)이 대신 인증하고, 사용자 리소스 접근 권한을 위임** 받는 방식
+
+그 중 카카오 로그인에 관심이 있어서 방식을 조사해봤다.
+
+**Step1) 카카오 로그인 및 토큰 발급**
+
+카카오 로그인 요청 → 서비스 서버는 카카오 인증 서버로 리다이렉트 
+
+이후 사용자가 카카오 계정으로 로그인 및 동의 → 카카오 인증 서버는 서비스에서 등록한 리다이렉트 URI에 인증 코드를 붙여서 줌
+
+```json
+https://your-redirect-uri?code=AUTHORIZATION_CODE
+```
+
+이후 AUTHORIZATION_CODE 로 카카오 인증 서버에 엑세스 토큰 발급 요청
+
+유효한 요청인 경우 엑세스 토큰, 리프레시 토큰을 발급해줌
+
+```json
+HTTP/1.1 200 OK
+Content-Type: application/json;charset=UTF-8
+{
+    "token_type":"bearer",
+    "access_token":"${ACCESS_TOKEN}",
+    "expires_in":43199,
+    "refresh_token":"${REFRESH_TOKEN}",
+    "refresh_token_expires_in":5184000,
+    "scope":"account_email profile"
+}
+
+```
+<img width="500" src="https://github.com/user-attachments/assets/6186c5e3-65f7-4e28-8443-0d1fe2ba6c38">
+
+**Step2) 서비스 회원 가입, 로그인**
+
+서비스 서버는 카카오 인증 서버에서 발급해준 토큰을 통해, 사용자 정보 가져오기를 요청
+
+서비스 서버는 받은 사용자 정보로 회원 여부 확인 후, 신규 사용자는 회원 가입처리 아닌 경우 로그인처리함
+
+<img width="500" src="https://github.com/user-attachments/assets/2a51d0e6-4d2d-46b2-9a7b-aea3dd958093">
+
+
+기존 사용자는 회원 여부 확인 후 로그인처리하여 자체 JWT를 생성하여 클라이언트에게 반환함
+
+---
+
+### JWT 자체 로그인 + KakaoLogin
+
+1. **Allow url에 리다이렉트 URI 등록하기**
+
+현재 코드는  filterChain에 하나씩 등록을 해두었는데 이 코드처럼 allowUrls를 따로 빼서 관리하는 것이 좋아보인다.
+
+```java
+    public static final String[] allowUrls = {
+    	    "/swagger-ui/**",
+            "/swagger-resources/**",
+            "/v3/api-docs/**",
+            "/api/v1/posts/**",
+            "/api/v1/replies/**",
+            "/login",
+            "/auth/login/kakao/**"
+    };
+    
+ 
+    public class SecurityConfig {
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    	// 다른 설정 중략
+        http
+            .authorizeHttpRequests(authorizeRequests ->
+                authorizeRequests
+                    .requestMatchers(ALLOWED_URLS).permitAll()  // 허용 URL 설정
+                    .anyRequest().authenticated()  // 그 외 모든 요청은 인증 필요
+            )
+            .csrf().disable()  // CSRF 보호 비활성화 (API 서버의 경우)
+            .formLogin().disable()  // 폼 로그인 비활성화
+            .httpBasic().disable();  // HTTP Basic 인증 비활성화
+
+        return http.build();
+    }
+}
+    
+```
+
+**2. AuthController** 
+
+리다이렉트 URI 뒤에 함께 전달 된 인증 코드를 받아오는 역할
+
+```java
+RestController
+@RequiredArgsConstructor
+@RequestMapping("")
+public class AuthController {
+
+    @GetMapping("/auth/login/kakao")
+    public ResponseEntity<?> kakaoLogin(@RequestParam("code") String accessCode, HttpServletResponse httpServletResponse) {
+
+    }
+    
+}
+```
+
+---
+
+⭐️ **Service와 Util의 구분**
+**서비스**
+- 비즈니스 로직 포함
+- 도메인과 밀접 연관
+- 트랜잭션 관리
+
+**유틸리티**
+- 재사용 가능한 헬퍼 메서드 제공
+- 특정 도메인에 종속되지 않음
+- 외부 API 호출이나 특정 기능에 특화된 로직 포함
+
+---
+
+**3 .Kakao Token 발급**
+
+**AuthService - oAuthLogin**
+
+AuthController에서 AccessCode를 받아서, kakaoUtil에서 구현한 토큰 발급 메서드를 호출함
+
+```java
+@Service
+@RequiredArgsConstructor
+public class AuthService {
+    private final KakaoUtil kakaoUtil;
+    private final UserRepository userRepository;
+    private final JwtUtil jwtUtil;
+    private final PasswordEncoder passwordEncoder;
+
+    @Override
+    public User oAuthLogin(String accessCode, HttpServletResponse httpServletResponse) {
+        KakaoDTO.OAuthToken oAuthToken = kakaoUtil.requestToken(accessCode);
+  
+		}
+}
+
+```
+
+**KakaoUtil - requestToken**
+
+실제 카카오 서비스에 토큰 발급을 요청하는 로직 포함
+
+서버에서 요청을 보낼 때는 RestTemplate을 사용
+
+확장성을 고려하면 WebClient를 사용하는 것이 좋지만 간단한 요청의 경우 RestTemplate도 좋음
+
+RestTempalte을 생성하고 requestToken 메서드 안에서 AccessCode를 포함하여 요청을 보냄
+
+```java
+public class KakaoUtil {
+    @Value("${spring.kakao.auth.client}")
+    private String client;
+    @Value("${spring.kakao.auth.redirect}")
+    private String redirect;
+
+    public KakaoDTO.OAuthToken requestToken(String accessCode) {
+		    // 토큰 요청을 위한 Request 생성
+        RestTemplate restTemplate = new RestTemplate();
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Content-type", "application/x-www-form-urlencoded;charset=utf-8");
+        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+        params.add("grant_type", "authorization_code");
+        params.add("client_id", client);
+        params.add("redirect_url", redirect);
+        params.add("code", accessCode);
+
+        HttpEntity<MultiValueMap<String, String>> kakaoTokenRequest = new HttpEntity<>(params, headers);
+		    
+		    // 요청 보내기
+        ResponseEntity<String> response = restTemplate.exchange(
+        "https://kauth.kakao.com/oauth/token",
+        HttpMethod.POST,
+        kakaoTokenRequest,
+        String.class);
+				
+				// Response JSON 직렬화를 위한 Object Mapper
+				ObjectMapper objectMapper = new ObjectMapper();
+				KakaoDTO.OAuthToken oAuthToken = null;
+				
+				// Response에서 데이터 꺼내기
+        try {
+            oAuthToken = objectMapper.readValue(response.getBody(), KakaoDTO.OAuthToken.class);
+            log.info("oAuthToken : " + oAuthToken.getAccess_token());
+        } catch (JsonProcessingException e) {
+            throw new AuthHandler(ErrorStatus._PARSING_ERROR);
+        }
+        return oAuthToken;
+    }
+ }
+```
+
+**4. AccessToken으로 사용자 정보 요청하기**
+
+AuthService 로그인 메서드에 사용자 정보를 요청하는 코드를 추가한다. 
+
+상세 로직은 KakaoUtil에서 처리한다.
+
+```java
+ // AuthService
+ @Override
+    public User oAuthLogin(String accessCode, HttpServletResponse httpServletResponse) {
+        KakaoDTO.OAuthToken oAuthToken = kakaoUtil.requestToken(accessCode);
+        KakaoDTO.KakaoProfile kakaoProfile = kakaoUtil.requestProfile(oAuthToken);
+		}
+
+```
+
+**KakaoUtil - requestProfile**
+
+프로필 요청하는 상세 로직을 구현, 카카오 인증 서버에서 받은 토큰을 헤더에 함께 넣어서 요청
+
+```java
+// KakaoUtil
+    public KakaoDTO.KakaoProfile requestProfile(KakaoDTO.OAuthToken oAuthToken){
+        RestTemplate restTemplate2 = new RestTemplate();
+        HttpHeaders headers2 = new HttpHeaders();
+
+        headers2.add("Content-type", "application/x-www-form-urlencoded;charset=utf-8");
+        headers2.add("Authorization","Bearer "+ oAuthToken.getAccess_token());
+
+        HttpEntity<MultiValueMap<String,String>> kakaoProfileRequest = new HttpEntity <>(headers2);
+
+        ResponseEntity<String> response2 = restTemplate2.exchange(
+                "https://kapi.kakao.com/v2/user/me", 
+                HttpMethod.GET,
+                kakaoProfileRequest,
+                String.class);
+	}
+```
+
+**5. 받은 사용자 정보를 이용한 회원 가입, 로그인** 
+
+카카오에서 받은 프로필 정보를 사용해서 기존 회원인지 확인하고 없다면 회원가입, 있다면 로그인 
+
+일반 회원 가입이 있는 서비스라면 OAuth로 새로 생성된 사용자는 DB password, Username (ID) 등을  null로 넣어서 기존 DB에 추가하면 된다.
+
+
+---
+
+
+## JWT 기반 인증 구현
+
+**1. JWT Token DTO 생성**
+
+클라이언트에 response로 보낼 token의 DTO 만들기
+
+grantType = JWT 인증 타입, 여기서는 Bearer 인증 방식을 사용
+
+```java
+package com.ceos20.instagram.global.config.jwt;
+
+import lombok.Builder;
+import lombok.Data;
+
+@Builder
+@Data
+public class JwtToken {
+    private String grantType;
+    private String accessToken;
+    private String refreshToken;
+}
+
+```
+
+**2. 암호키 설정하기**
+
+토큰 암호화/복호화에 사용할 암호키를 설정
+
+32자 이상으로 설정 terminal에 입력하여 새로 생성했다.
+
+발급 받은 암호키는 .env에 등록하고, application.yml 파일에서 환경변수로 불러와준다.
+
+```java
+openssl rand -hex 32
+```
+
+**3. JwtTokenProvider**
+
+Spring security와 JWT 토큰을 사용하여 인증, 권한 부여를 처리하는 클래스
+
+토큰 생성, 검증, 토큰 내 정보 파싱 등을 구현했다.
+
+그 중에서 claim에 저장된 username (회원의 ID) 을 가져오는 메서드를 추가로 만들었다.
+
+`@Value("${jwt.secret"}` 을 통해서 yml에서 secret Key를 받아온다.
+
+```java
+...
+@Slf4j
+@Component
+public class JwtTokenProvider {
+    private final Key key;
+    public JwtTokenProvider(@Value("${jwt.secret}") String secretKey) {
+        byte[] keyBytes = Decoders.BASE64.decode(secretKey);
+        this.key = Keys.hmacShaKeyFor(keyBytes);
+    }
+
+     // accessToken, refreshToken을 생성하는 메서드
+    public JwtToken generateToken(Authentication authentication) {
+        long now = (new Date()).getTime();
+
+        // 기본 권한 설정
+        String authorities = "USER";
+
+        // accessToken 생성
+        Date accessTokenExpiresIn = new Date(now + 1800000); // 30분
+        String accessToken = Jwts.builder()
+                .setSubject(authentication.getName())
+                .claim("auth", authorities)
+                .setExpiration(accessTokenExpiresIn)
+                .signWith(key, SignatureAlgorithm.HS256)
+                .compact();
+
+        // refreshToken 생성
+        String refreshToken = Jwts.builder()
+                .setExpiration(new Date(now + 604800000)) // 일주일
+                .signWith(key, SignatureAlgorithm.HS256)
+                .compact();
+
+        return JwtToken.builder()
+                .grantType("Bearer")
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .build();
+    }
+
+    // Jwt 토큰에 들어있는 정보를 꺼내는 메서드
+    public Authentication getAuthentication(String accessToken) {
+        Claims claims = parseClaims(accessToken);
+
+        if (claims.get("auth") == null) {
+            throw new CustomException(ErrorCode.UNAUTHORIZED, "권한 정보가 없는 토큰입니다.", null);
+        }
+
+        // 클레임에서 권한 정보 가져오기
+        Collection<? extends GrantedAuthority> authorities = Arrays.stream(claims.get("auth").toString().split(","))
+                .map(SimpleGrantedAuthority::new)
+                .collect(Collectors.toList());
+
+        // 권한이 없는 경우 빈 컬렉션을 설정
+        if (authorities.isEmpty()) {
+            authorities = new ArrayList<>();
+        }
+
+        // UserDetails 객체를 만들어서 Authentication return
+        UserDetails principal = new User(claims.getSubject(), "", authorities);
+        return new UsernamePasswordAuthenticationToken(principal, "", authorities);
+    }
+
+    // 토큰 정보를 검증하는 메서드
+    public boolean validateToken(String token) {
+        try {
+            Jwts.parserBuilder()
+                    .setSigningKey(key)
+                    .build()
+                    .parseClaimsJws(token);
+            return true;
+        } catch (SecurityException | MalformedJwtException e) {
+            log.info("Invalid JWT Token", e);
+        } catch (ExpiredJwtException e) {
+            log.info("Expired JWT Token", e);
+        } catch (UnsupportedJwtException e) {
+            log.info("Unsupported JWT Token", e);
+        } catch (IllegalArgumentException e) {
+            log.info("JWT claims string is empty.", e);
+        }
+        return false;
+    }
+
+    // accessToken 파싱하는 메서드
+    private Claims parseClaims(String accessToken) {
+        try {
+            return Jwts.parserBuilder()
+                    .setSigningKey(key)
+                    .build()
+                    .parseClaimsJws(accessToken)
+                    .getBody();
+        } catch (ExpiredJwtException e) {
+            return e.getClaims();
+        }
+    }
+
+    // 토큰에서 username 가져오는 메서드
+    public String getUsernameFromToken(String token) {
+        Claims claims = parseClaims(token);
+        return claims.getSubject();
+    }
+
+}
+
+```
+
+**4. JWTAuthenticationFilter** 
+
+JWT 인증을 하기 위한 커스텀 필터
+
+doFilter를 통해서, 클라이언트 요청에 대한 인증 처리를 진행함
+
+→ 토큰 유효성 검사를 통해서 유효하지 않은 경우 response 반환 후 체인 중단
+
+→ 유효한 경우 사용자 인증처리 후 SecurityContext에 저장함 
+
+거의 대부분의 서비스에서 username이 아닌 userId를 사용하므로, 토큰 인증 후 인증된 사용자 정보 저장 시 해당 유저의 userId (고유 번호)를 principal로 설정함
+
+resolveToken을 통해서 헤더에서 토큰을 추출
+
+```java
+... 
+
+@Builder
+public class JwtAuthenticationFilter extends GenericFilterBean {
+    private final JwtTokenProvider jwtTokenProvider;
+    private final AuthenticationManager authenticationManager; 
+    private final CustomUserDetailsService customUserDetailsService;
+
+    @Override
+    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
+        String token = resolveToken((HttpServletRequest) request);
+
+        // 토큰 유효성 검사
+        if (token == null || !jwtTokenProvider.validateToken(token)) {
+            // 필터 내에서 직접 응답 처리
+            HttpServletResponse httpResponse = (HttpServletResponse) response;
+            httpResponse.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            httpResponse.setContentType("application/json;charset=UTF-8");
+
+            String message = "JWT 토큰이 유효하지 않거나 누락되었습니다.";
+            ResponseTemplate<?> responseTemplate = ResponseTemplate.builder()
+                    .status(HttpServletResponse.SC_UNAUTHORIZED)
+                    .success(false)
+                    .message(message)
+                    .data(null)
+                    .build();
+
+            // ObjectMapper를 사용해서 json으로 직렬화
+            ObjectMapper objectMapper = new ObjectMapper();
+            String responseMessage = objectMapper.writeValueAsString(responseTemplate);
+            httpResponse.getWriter().write(responseMessage);
+
+            return;
+        }
+
+        if (token != null && jwtTokenProvider.validateToken(token)) {
+            // 토큰에서 username을 추출하고, username으로 userId를 조회
+            String username = jwtTokenProvider.getUsernameFromToken(token);
+            UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);  // username으로 조회
+            Long userId = ((User) userDetails).getId();  // userId 추출
+
+            Authentication authentication = jwtTokenProvider.getAuthentication(token);
+
+            Authentication authenticated = new UsernamePasswordAuthenticationToken(
+                    userId,  // userId를 Principal로 설정
+                    "",
+                    authentication.getAuthorities()
+            );
+
+            SecurityContextHolder.getContext().setAuthentication(authenticated);
+        }
+
+        chain.doFilter(request, response);
+    }
+
+    // Request Header에서 토큰 정보 추출
+    private String resolveToken(HttpServletRequest request) {
+        String bearerToken = request.getHeader("Authorization");
+        if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
+            return bearerToken.substring(7);  // "Bearer " 이후의 토큰을 반환
+        }
+        return null;
+    }
+}
+
+```
+
+**5. SecurityConfig**
+
+Spring security 설정 파일
+
+**filterChain**
+
+이 중에서 인가 규칙 설정 부분은 allowUrls 를 따로 만들어서 추후 리팩토링 예정 
+
+- 인증 방식, 세션 관리 설정
+- 인가 규칙 설정
+- 필터 설정
+
+```java
+@Bean
+public SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception {
+    AuthenticationManager authenticationManager = authenticationManager(httpSecurity);
+
+    return httpSecurity
+				    // 인증 방식 및 세션 관리 설정
+            .httpBasic().disable()
+            .csrf().disable()
+            .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            .and()
+	           // 인가 규칙 설정
+            .authorizeHttpRequests()
+            .requestMatchers("/users/login").permitAll()
+            .requestMatchers("/users/id/**").permitAll()
+            .requestMatchers("/users/register").permitAll()
+            .anyRequest().authenticated()
+            .and()
+            // 필터 설정
+            // jwtAuthenticationFilter를 앞에 추가해서 먼저 실행되도록 함
+            .addFilterBefore(jwtAuthenticationFilter(authenticationManager), UsernamePasswordAuthenticationFilter.class)
+            .build();
+}
+
+```
+
+**jwtAuthenticationFilter** 
+
+인증 필터를 빈으로 등록하고 필요한 의존을 주입하는 메서드
+
+- `jwtTokenProvider` : 토큰 생성 및 검증
+- `AuthenticationManager` : 사용자 인증 관리, `JwtAuthenticationFilter` 에서 사용
+- `customUserDetailsService` : 사용자 정보 조회 메서드
+
+```java
+@Bean
+public JwtAuthenticationFilter jwtAuthenticationFilter(AuthenticationManager authenticationManager) {
+    return JwtAuthenticationFilter.builder()
+            .jwtTokenProvider(jwtTokenProvider)
+            .authenticationManager(authenticationManager)
+            .customUserDetailsService(customUserDetailsService)
+            .build();
+}
+
+```
+
+**6. AuthenticationUtils**
+
+인증된 사용자 정보 접근에 필요한 메서드를 모아둔 클래스
+
+**getLoginUserId (로그인한 사용자 정보, 즉 token 인증된 사용자)**
+
+인증된 사용자를 SecurityContextHolder에서 가져와서 userId를 가져오는 메서드
+
+```java
+package com.ceos20.instagram.global;
+
+import com.ceos20.instagram.global.exception.CustomException;
+import com.ceos20.instagram.global.exception.ErrorCode;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+
+public class AuthenticationUtils {
+
+    // 인증된 사용자의 userId를 가져오는 메서드
+    public static Long getLoginUserId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || authentication.getPrincipal() == null) {
+            throw new CustomException(ErrorCode.UNAUTHORIZED, "인증 정보가 없습니다.", null);
+        }
+
+        return (Long) authentication.getPrincipal();
+    }
+}
+
+```
+
+## 회원가입, 로그인 API 구현 및 테스트
+
+### 회원가입 API 구현
+
+컨트롤러 단에서 필드 오류를 잡고, 이후에 회원가입 로직처리
+
+**UserController - register**
+
+```java
+// 회원가입
+@Operation(summary = "회원 가입")
+@PostMapping("/register")
+public ResponseEntity<ResponseTemplate<UserRegisterResponseDto>> register(@Valid @RequestBody UserRegisterRequestDto requestDto,
+                                                                          BindingResult bindingResult) {
+    // DTO 필드 검증
+    if (bindingResult.hasErrors()) {
+        // 필드와 기본 메시지를 CustomException으로 던짐
+        Map<String, String> fieldErrors = new HashMap<>();
+        for (FieldError error : bindingResult.getFieldErrors()) {
+            fieldErrors.put(error.getField(), error.getDefaultMessage());
+        }
+        // CustomException으로 필드 오류 전달
+        throw new CustomException(ErrorCode.BAD_REQUEST, "잘못된 필드 형식입니다.", fieldErrors);
+    }
+
+    // 회원 정보 저장
+    UserRegisterResponseDto responseDto = userService.register(requestDto);
+    // ResponseTemplate을 사용해 응답 생성
+    return ResponseTemplate.createTemplate(HttpStatus.CREATED, "회원가입 성공", responseDto);
+}
+
+```
+
+**201** 
+
+회원가입 성공
+<img width="500" src="https://github.com/user-attachments/assets/a0b10785-b91a-4d57-9eec-1320b6efc58d">
+
+
+**409**
+
+이미 사용중인 이메일, 아이디에 대한 요청 에러처리
+
+<img width="500" src="https://github.com/user-attachments/assets/fec5d05e-30ed-4eda-8f62-d034f5f3a334">
+
+<img width="500" src="https://github.com/user-attachments/assets/c87cfe83-6498-4672-860a-0a1dcd14759a">
+
+**400**
+
+잘못된 필드에 대한 형식, 필수 필드 누락시에 대한 에러 처리
+
+<img width="500" src="https://github.com/user-attachments/assets/bb759cbf-59c4-4879-93c2-3e4739af8ae7">
+
+### 로그인 API 구현
+
+**UserController - login**
+
+필드 오류는 컨트롤러 단에서 잡고, 이후 로그인 처리 
+
+```java
+  // 로그인
+  @Operation(summary = "로그인")
+  @PostMapping("/login")
+  public ResponseEntity<ResponseTemplate<UserLoginResponseDto>> login(@Valid @RequestBody UserLoginRequestDto requestDto,
+                                                                      BindingResult bindingResult) {
+      // DTO 필드 검증
+      if (bindingResult.hasErrors()) {
+          // 필드와 기본 메시지를 CustomException으로 던짐
+          Map<String, String> fieldErrors = new HashMap<>();
+          for (FieldError error : bindingResult.getFieldErrors()) {
+              fieldErrors.put(error.getField(), error.getDefaultMessage());
+          }
+          // CustomException으로 필드 오류 전달
+          throw new CustomException(ErrorCode.BAD_REQUEST, "잘못된 필드 형식입니다.", fieldErrors);
+      }
+      // 로그인
+      UserLoginResponseDto responseDto = userService.login(requestDto);
+
+      // ResponseTemplate을 사용해 응답 생성
+      return ResponseTemplate.createTemplate(HttpStatus.OK, "로그인 성공", responseDto);
+  }
+
+```
+
+**UserService - login**
+
+username, password 검증 이후 인증 매니저로 인증 정보 생성
+
+인증 정보로 token 생성 후 ResponseDto에 포함하여 리턴
+
+```java
+  // 로그인 메서드
+  @Transactional(readOnly = true)
+  public UserLoginResponseDto login(UserLoginRequestDto requestDto){
+      // username으로 사용자 조회
+      User user = userRepository.findByUsername(requestDto.getUsername())
+              .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "존재하지 않는 아이디입니다." ,requestDto.getUsername()));
+
+      // 비밀번호 확인
+      if (!passwordEncoder.matches(requestDto.getPassword(), user.getPassword())) {
+          throw new CustomException(ErrorCode.NOT_FOUND, "비밀번호가 맞지 않습니다." ,requestDto.getPassword());
+      }
+
+      // UsernamePasswordAuthenticationToken 생성하여 인증 매니저에 넘기기
+      UsernamePasswordAuthenticationToken authenticationToken =
+              new UsernamePasswordAuthenticationToken(user.getUsername(), requestDto.getPassword());
+
+      Authentication authentication = authenticationManager.authenticate(authenticationToken);
+
+      // 인증 정보로 JWT 토큰 생성
+      JwtToken jwtToken = jwtTokenProvider.generateToken(authentication);
+
+      // 로그인 성공 응답
+      return UserLoginResponseDto.from(user, jwtToken);
+  }
+```
+
+**200**
+
+로그인 성공하는 경우 토큰과 함께 userId, username 반환
+<img width="500" src="https://github.com/user-attachments/assets/9d896a23-0bad-4542-a3ff-0585928439e1">
+
+
+**404**
+
+존재하지 않는 아이디인 경우, 비밀번호가 일치하지 않는 경우 처리
+<img width="500" src="https://github.com/user-attachments/assets/827c4685-3401-4921-a701-bd9c8f387cb2">
+<img width="500" src="https://github.com/user-attachments/assets/f6562cdd-108a-4234-a715-c69c76ca3397">
+
+
+**400** 
+
+필수 필드가 비어있는 경우
+
+<img width="500" src="https://github.com/user-attachments/assets/6916d600-d5ec-4a23-9c8b-3892f89607dc">
+
+
+## 토큰 이용 권한 인증 API 구현 및 테스트
+
+로그인해야 이용할 수 있는 글 관련 기능에 대한 API 테스트
+
+**게시글 수정 API** 
+
+기존 userId를 static value에서 직접 SecurityContex에서 가져오는 코드로 변경
+
+AuthenticationUtils에 만들어둔 인증 받은 유저의 userId 가져오기 메서드 `getLoginUserId` 사용
+
+service 단에서는 수정한 코드 없음
+
+```java
+  // 게시글 수정
+  @Operation(summary = "게시글 수정")
+  @PatchMapping("/posts/{postId}") // 필드 일부 수정 가능
+  public  ResponseEntity<ResponseTemplate<PostResponseDto>> updatePost(@PathVariable Long postId,
+                                                    @RequestBody PostUpdateRequestDto requestDto){
+      **Long userId = AuthenticationUtils.getLoginUserId();**
+      PostResponseDto responseDto = postService.updatePost(postId, userId, requestDto);
+      return ResponseTemplate.createTemplate(HttpStatus.OK, "게시글 수정 성공", responseDto);
+  }
+```
+
+**Postman을 사용한 API 테스트** 
+
+Auth에 Bearer 토큰란에 토큰을 포함하여 요청 보냄
+
+<img width="500" src="https://github.com/user-attachments/assets/c6070836-d627-4673-a66b-e9c3c07a232c">
+
+**권한이 없는 유저가 수정 요청 시**
+
+권한이 없음을 의미하는 401 코드 반환하고 유저의 고유 번호 id를 함께 반환함
+
+<img width="500" src="https://github.com/user-attachments/assets/00294701-ca7f-4e19-b5bf-923ddee8c423">
+---
+
+## Reference
+
+- [JWT](https://velog.io/@jinyoungchoi95/JWTJson-Web-Token-%EC%9D%B8%EC%A6%9D%EB%B0%A9%EC%8B%9D)
+- [RefreshToken](https://medium.com/@dkfud2121/jwt-token-%EC%9D%B4%EA%B2%83%EB%A7%8C%EC%9D%80-%EC%95%8C%EA%B3%A0-%EA%B0%80%EC%9E%90-d96a49fbcabe)
+- [Cookie](https://velog.io/@dnjsdn96/Cookie-Cookie%EB%9E%80)
+- [OAuth - kakao](https://jinhos-devlog.tistory.com/entry/Spring-Rest-API-%EC%B9%B4%EC%B9%B4%EC%98%A4-Kakao-OAuth-%EB%A1%9C%EA%B7%B8%EC%9D%B8-%EA%B5%AC%ED%98%84%ED%95%98%EA%B8%B0)
