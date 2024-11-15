@@ -1,6 +1,6 @@
 package com.ceos20.instagram.global.config.jwt;
 
-import com.ceos20.instagram.domain.user.domain.CustomUserDetailsService;
+import com.ceos20.instagram.domain.user.service.CustomUserDetailsService;
 import com.ceos20.instagram.domain.user.domain.User;
 import com.ceos20.instagram.global.ResponseTemplate;
 import com.fasterxml.jackson.databind.ObjectMapper;
