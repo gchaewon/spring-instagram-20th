@@ -1,6 +1,6 @@
 package com.ceos20.instagram.global.config;
 
-import com.ceos20.instagram.domain.user.domain.CustomUserDetailsService;
+import com.ceos20.instagram.domain.user.service.CustomUserDetailsService;
 import com.ceos20.instagram.global.config.jwt.JwtAuthenticationFilter;
 import com.ceos20.instagram.global.config.jwt.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +32,8 @@ public class SecurityConfig {
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 .and()
                 .authorizeHttpRequests()
+                .requestMatchers("/swagger-ui/**").permitAll()
+                .requestMatchers("/v3/api-docs/**").permitAll()
                 .requestMatchers("/users/login").permitAll()
                 .requestMatchers("/users/id/**").permitAll()
                 .requestMatchers("/users/register").permitAll()
