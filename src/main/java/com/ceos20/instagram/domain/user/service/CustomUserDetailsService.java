@@ -1,14 +1,14 @@
-package com.ceos20.instagram.domain.user.domain;
+package com.ceos20.instagram.domain.user.service;
 
 import com.ceos20.instagram.domain.user.repository.UserRepository;
-import lombok.Builder;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 @Service
-@Builder
+@RequiredArgsConstructor
 public class CustomUserDetailsService implements UserDetailsService {
     private final UserRepository userRepository;
 
