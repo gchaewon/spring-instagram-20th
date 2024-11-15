@@ -1,0 +1,33 @@
+version: "3"
+
+services:
+  db:
+    image: mariadb:latest
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+    volumes:
+      - dbdata:/var/lib/mysql
+    ports:
+      - "3307:${DB_PORT}"
+    restart: always
+
+  web:
+    container_name: web
+    build: .
+    ports:
+      - "${APP_PORT}:${APP_PORT}"
+    depends_on:
+      - db
+    environment:
+      MYSQL_HOST: ${DB_HOST}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DB: ${DB_NAME}
+    restart: always
+    volumes:
+      - app:/app
+
+volumes:
+  dbdata:
+  app:
