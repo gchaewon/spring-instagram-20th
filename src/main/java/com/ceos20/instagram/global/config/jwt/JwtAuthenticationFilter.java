@@ -20,16 +20,25 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.filter.GenericFilterBean;
 
 import java.io.IOException;
+import java.util.List;
 
 @Builder
 public class JwtAuthenticationFilter extends GenericFilterBean {
     private final JwtTokenProvider jwtTokenProvider;
     private final AuthenticationManager authenticationManager;
     private final CustomUserDetailsService customUserDetailsService;
+    private final List<String> allowedUris;
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
-        String token = resolveToken((HttpServletRequest) request);
+        HttpServletRequest httpRequest = (HttpServletRequest) request;
+        String token = resolveToken(httpRequest);
+
+        // URI가 허용된 목록에 있으면 JWT 검사 건너뜀
+        if (isAllowedURI(httpRequest.getServletPath())) {
+            chain.doFilter(request, response);
+            return;
+        }
 
         // 토큰 유효성 검사
         if (token == null || !jwtTokenProvider.validateToken(token)) {
@@ -83,4 +92,11 @@ public class JwtAuthenticationFilter extends GenericFilterBean {
         }
         return null;
     }
+
+    private boolean isAllowedURI(String requestUri) {
+        return allowedUris.stream().anyMatch(uri -> requestUri.matches(uri));
+    }
+
+
+
 }
