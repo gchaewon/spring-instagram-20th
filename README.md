@@ -8,6 +8,7 @@ CEOS 20th BE study - instagram clone coding
 - [4주차 API 개발](#4주차-930---112)
 - [5주차 JWT토큰 기반 유저인증](#5주차-114---119)
 - [6주차 Docker](#6주차-1111---1116)
+- [7주차 Deploy](#7주차-1118---1123)
 
   
 ---
@@ -2645,3 +2646,263 @@ docker-compose -f docker-compose.yml up --build
 - [바인드 마운트](https://www.daleseo.com/docker-volumes-bind-mounts/)
 - [dockerfile, compose](https://www.inflearn.com/community/questions/1160100/dockerfile%EA%B3%BC-dockercompose-%EC%B0%A8%EC%9D%B4%EA%B0%80-%EA%B6%81%EA%B8%88%ED%95%A9%EB%8B%88%EB%8B%A4?srsltid=AfmBOorglkZj_6AD9mVZpyPr7LKsc_wdDBPhMHi13e93Sb-PHzb_GKbh)
 - [volume](https://formulous.tistory.com/17)
+
+
+---
+## 7주차 (11/18 - 11/23)
+
+---
+
+## 저번주 트러블 슈팅
+
+저번주에 mysql을 불러올 수 없다는 문제가 있었다. 
+
+application.yml에 dialect를 추가하는 방식으로 해결했으나, 제대로된 해결이 아닌듯하여 다시 해보기로했다. 
+
+→ 그 당시 3306에 로컬 mysql 서버가 동작하고 있어서 해결이 된 상황으로 확인 
+
+내가 원하는 것은 도커 컨테이너에서 동작하는 mysql이므로 해당 서버를 끄고 다시 시도
+
+확인해보니 내 로컬 환경에서 java application, mysql 두 도커 컨테이너가 동작하는 상황인데 
+
+Datasource url이 변경되어있지 않아서 발생한 문제였다. 
+
+application.yml의 datasource url 부분에서 호스트 부분을 [localhost](http://localhost) → host.docker.internal 로 바꿔줘야한다.
+
+.env 파일의 값을 변경하고 재실행했더니 잘 동작하는 것으로 확인 
+
+```bash
+docker pull mysql
+docker run --name mysql-container -e MYSQL_ROOT_PASSWORD={password} -d -p 3307:3306 mysql:latest
+```
+
+```bash
+docker build -t {이미지명} .
+docker run --env-file .env -p 8080:8080 {이미지명}
+```
+<img width="500" src="https://github.com/user-attachments/assets/790eecad-2085-4e71-b639-48530ac2a18e">
+
+로컬에서 잘 작동하는 것을 확인했고, 다른 허용 URI 미적용 문제등을 해결하고 
+
+다시 도커이미지 생성하여 배포를 진행했다. 
+
+---
+
+## Deploy
+
+### 1. 도커 이미지 생성 및 허브 등록
+
+**애플리케이션 빌드 및 이미지 생성**
+
+애플리케이션은 gradle/bootJar를 통해서 빌드하였다. 
+
+이후 아래 명령어로 도커 이미지를 생성했다.
+
+M1 이후부터는 플랫폼 명시를 해줘야한다, 명시하지 않으면 arm 기반 이미지를 생성해서 linux 기반 인스턴스에서 도커이미지를 실행할 수 없다.
+
+```markdown
+docker build --platform linux/amd64 -t {도커아이디}/{애플리케이션명} .
+```
+<img width="500" src="https://github.com/user-attachments/assets/959249bf-fc4c-450b-a9c7-c2e9ff63837b">
+
+### 2. EC2 배포
+
+**1) 보안 그룹 설정**
+
+http(80), ssh(22), mysql(3306) 인바운드 추가
+
+http는 이후 postman으로 API 테스트를 하기 위해서, ssh는 인스턴스 접속용으로 추가
+
+**2) 패키지 업데이트**
+
+Amazon linux의 경우 apt 명령어 대신 yum 사용
+
+```bash
+sudo yum update
+```
+
+**3) 스왑 메모리설정**
+
+제한된 프리티어에서 스왑 메모리를 사용하여 최대한 많은 메모리를 사용할 수 있게 한다.
+
+1. **스왑 파일 생성 및 읽기/쓰기 권한 부여**
+
+스왑 메모리는 램 메모리의 2배 이상을 추천
+
+프리티어 사용시 램 1GB이므로 스왑 메모리 2GB로 설정
+
+```bash
+sudo dd if=/dev/zero of=/swapfile bs=128M count=16
+sudo chmod 600 /swapfile
+```
+
+dd: 블록 단위 파일 복사, 변환 명령어
+
+if: 지정한 파일을 입력 대상으로 설정
+
+of: 지정한 파일을 출력 대상으로 설정
+
+bs: 한 번에 변환 가능한 바이트 크기
+
+count: 지정한 블록 수 만큼 복사
+
+**b. 스왑 공간 생성** 
+
+```bash
+sudo mkswap /swapfile
+```
+
+**c. 생성한 스왑 공간에 스왑 파일 추가 후 확인하기**
+
+```bash
+sudo swapon /swapfile
+sudo swapon -s
+```
+
+<img width="500" src="https://github.com/user-attachments/assets/ba2d39a3-6a3d-4f82-92cf-8d659ef71b40">
+
+**d. 스왑 파일 시스템 설정**
+
+시스템 부팅 시 자동 활성화되도록 파일 시스템 수정
+
+```bash
+sudo vi /etc/fstab
+```
+
+vi 에디터 열리면, 아래 내용을 추가하기
+
+Esc키 명령 모드 → G를 눌러 맨 아랫줄로 이동
+
+→ i키 눌러서 편집 모드 
+
+→ 내용 추가후 Esc, :wq + enter 키로 저장
+
+```bash
+/swapfile swap swap defaults 0 0
+```
+
+**e. 메모리 확인**
+
+```bash
+free
+```
+
+<img width="500" src="https://github.com/user-attachments/assets/0b4ecb69-bc09-4089-a9ce-2ca751741bc1">
+
+
+**4) 도커 설치 및 실행**
+
+이미 ec2 CLI 에서 진행하고 있기 때문에 별도 연결 없이 도커 설치를 했다.
+
+linux 환경이므로 yum 을 사용해서 설치한다
+
+버전 확인을 하고, 도커 명령어를 실행하려면 도커가 실행 중이어야한다. 
+
+```bash
+sudo yum install docker -y
+docker --version
+
+# 도커 실행
+sudo systemctl start docker
+```
+
+**5)mysql 이미지 다운 후 실행**
+
+⭐️ mysql 이미지를 먼저 실행하고 있어야지 애플리케이션에서 db 연결 오류가 나지 않는다. 
+
+이때 인자로 주는 비밀번호가 mysql root 접속 비밀번호가 된다. 
+
+```bash
+# MYSQL 이미지 pull, 실행
+sudo docker pull mysql
+
+sudo docker run --name mysql-container -e MYSQL_ROOT_PASSWORD={password} -d -p 3306:3306 mysql
+```
+
+ec2에서 동작하는 Mysql을 workbench와 연결해서 스키마를 만들어줘야한다.
+
+JPA는 만들어진 db와 연결하여 테이블을 생성해주지만 db 자체는 만들 수 없기 때문에,
+
+만들지 않고 스프링앱을 실행하면 db_name이 뭔데 ?? 라는 오류를 낸다.
+
+.env 파일의 DB_NAME과 동일하게 스키마를 생성한다.
+
+hostname 부분은 퍼블릭 IP DNS 이름을 복사해서 넣어주면 된다. 사진으로는 잘렸는데 끝까지 넣어줘야한다.
+
+비밀번호는 위에서 mysql 이미지 실행 시 넣어줬던 비밀번호로 설정하면 된다.
+
+<img width="500" src="https://github.com/user-attachments/assets/082f392b-e885-4731-8bf8-b5679b1863cf">
+
+이후 workbench와 연결되면, 스키마를 생성한다.
+
+만약 권한이 없거나 조회가 안되는 경우 루트 유저에 권한 부여 후 진행하면 된다.
+
+```sql
+CREATE DATABASE db_name;
+```
+
+mysql db 생성이 제대로 되어서, 로컬에서 돌아가는 spring boot 애플리케이션과 연결이 되는지 확인해봤다.
+
+그 과정에서 외부 접근 허용을 위해서는 [mysql bind 설정을 변경](https://wanbaep.tistory.com/11)해줘야한다는 것을 알게 되었다.  수정 후 진행하였고, 각 테이블도 잘 생성된 것을 확인했다.
+
+**6).env 파일 생성**
+
+애플리케이션 이미지를 실행할 때 .env 파일을 전달하는 방식을 사용하기 위해 파일을 생성한다. 
+
+```bash
+vi .env
+```
+
+후 기존 로컬 .env 파일 중 DB host 부분을 local host에서 EC2 public IP로 변경한다.
+
+이제 ec2 환경에서 동작하는 mysql과 연결해야하기 때문이다.
+
+```bash
+DB_HOST={public IP}
+DB_PORT=3306
+DB_NAME={db 이름}
+DB_USER=root
+DB_PASSWORD={password}
+JWT={토큰 값}
+APP_PORT=8080
+```
+
+**7)스프링 이미지 다운 후 실행**
+
+여기서 주의할 점은 -e로 인자를 넘겨줬을 때 자꾸 스프링 컨테이너가 꺼졌다.
+
+—env-file로 넘겨주니까 꺼지지 않고 잘 돌아갔다. 
+
+```bash
+# 스프링 이미지
+sudo docker pull {도커아이디}/{리포지토리명}
+sudo docker run -e .env -d -p 80:8080 {도커아이디}/{리포지토리명 혹은 이미지ID}
+```
+<img width="500" src="https://github.com/user-attachments/assets/c89e98af-3b8f-432c-959e-4f3367146c4f">
+
+### 3. API 테스트
+
+두 도커 이미지가 돌아가는 인스턴스의 public Ip 주소를 넣어서 회원가입과 로그인 테스트를 진행했다.
+
+스프링 애플리케이션을 실행할 때 80:8080으로 설정했기 때문에 
+
+`http://{publicIp}:80/{테스트할URI}`
+
+이렇게 요청을 보내면 된다.
+
+회원가입과 로그인 기능이 잘 동작하는 것을 확인할 수 있다.
+
+<img width="500" src="https://github.com/user-attachments/assets/11097f60-e676-4365-aec3-a980cce98afa">
+
+<img width="500" src="https://github.com/user-attachments/assets/85ffc261-9d39-4d70-8c9f-91fbe0f08a17">
+
+---
+
+### 레퍼런스
+
+[스왑메모리](https://diary-developer.tistory.com/32)
+
+[ec2에서 돌아가는 mysql 연결하기](https://yejin-code.tistory.com/50)
+
+[mysql bind 설정을 변경](https://wanbaep.tistory.com/11)
+
