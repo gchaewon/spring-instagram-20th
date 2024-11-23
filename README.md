@@ -7,6 +7,7 @@ CEOS 20th BE study - instagram clone coding
 - [3주차 서비스 개발](#3주차-923---928)
 - [4주차 API 개발](#4주차-930---112)
 - [5주차 JWT토큰 기반 유저인증](#5주차-114---119)
+- [6주차 Docker](#6주차-1111---1116)
 
   
 ---
@@ -2270,3 +2271,377 @@ Auth에 Bearer 토큰란에 토큰을 포함하여 요청 보냄
 - [RefreshToken](https://medium.com/@dkfud2121/jwt-token-%EC%9D%B4%EA%B2%83%EB%A7%8C%EC%9D%80-%EC%95%8C%EA%B3%A0-%EA%B0%80%EC%9E%90-d96a49fbcabe)
 - [Cookie](https://velog.io/@dnjsdn96/Cookie-Cookie%EB%9E%80)
 - [OAuth - kakao](https://jinhos-devlog.tistory.com/entry/Spring-Rest-API-%EC%B9%B4%EC%B9%B4%EC%98%A4-Kakao-OAuth-%EB%A1%9C%EA%B7%B8%EC%9D%B8-%EA%B5%AC%ED%98%84%ED%95%98%EA%B8%B0)
+
+
+---
+## 6주차 (11/11 - 11/16)
+
+---
+
+## 🐳 Docker
+
+Docker란 애플리케이션 구축, 구현 및 테스트를 위해 격리된 가상화 환경을 생성하는 서비스형 플랫폼이다.
+
+**Docker를 사용해야하는 이유**
+
+OS 환경에 구애 받지 않고, 동일한 환경을 만들 수 있기 때문에 애플리케이션을 신속하게 배포, 확장할 수 있다.
+
+Spring Boot 서버를 띄우는 과정에서 JDK, GIt등을 설치해야하는 번거로움이 없고, OS 환경이 다른 경우에도 배포 과정의 오류를 줄일 수 있다.
+
+### Docker Image
+
+Application을 포장, 전송하기 위해 사용하는 파일, 어플리케이션 실행에 필요한 독립적인 환경을 포함한다.
+
+도커 이미지는 소스코드, 라이브러리, 종속성, 도구, 응용프로그램 등을 실행하기 위한 기타 파일을 포함하는 **불변 파일(읽기 전용)이다.**
+
+특정 시점의 애플리케이션과 가상 환경으로 스냅샷이라고도 불린다. 
+
+**이러한 특징으로 일관성을 유지하며, 안정적이고 동일한 환경에서 소프트웨어를 테스트하고 실험할 수 있는 것이다.**
+
+### Docker Container
+
+컨테이너는 이미지 목적에 따라 생성되는 프로세스 단위의 격리 환경이다. 
+
+이미지를 동적인 형태로 변경한 것이 컨테이너이며, 즉 애플리테이션을 실행할 격리 환경이다.
+
+컨테이너를 생성하면 쓰기 가능한 레이어가 불변 이미지 위에 추가가 되는 방식으로 작동한다.
+
+Base 이미지에서 도커 이미지를 무제한으로 생성할 수 있다.
+
+각 이미지 계층은 가상환경을 사용할 때 추가된 읽기 전용 파일이다.
+
+<img width="500" src="https://github.com/user-attachments/assets/61c79650-81b7-42f5-a7db-a0273d09d656">
+
+
+
+### Dockerfile, Image, Dockerhub, Container
+
+```
+Dockerfile --(Build)--> Image --(Create)--> Container
+```
+
+ ****이미지를 빌드하는 방식을 정의한 스크립트인 Dockerfile을 통해 이미지를 생성한다.
+
+이후 이미지를 동적 형태로 변경하여 컨테이너를 구동시키는 형식으로 진행한다.
+
+생성한 이미지는 DockerHub에서 다운 받아, 실행시킬 수 있다.
+
+<img width="500" src="https://github.com/user-attachments/assets/7f5d1e24-3db3-4a43-b897-6194e59d2fbc">
+
+
+### CD (Continuous Delivery)
+
+Docker는 이미지(불변)를 기반으로 생성된다.
+
+그렇다면 수정사항이 발생한다면 어떻게 해야할까?
+
+개발자가 하나하나 도커 이미지를 다시 만들고, 재배포해야할까? 당연히 아니다. 
+
+→ github actions, Jenkins 등 CI/CD 도구 등을 통해 배포를 자동화할 수 있다.
+
+### 포트 포워딩
+
+기존 운영체제 (Host)와 도커 컨테이너는 독립된 실행 환경으로, 다른 포트와 파일 시스템을 가지고 있다.
+
+따라서 Host와 Container의 포트를 연결해주어야 Host의 port로 전송된 것들을 Container port로 전달할 수 있다.
+
+이를 **포트 포워딩**이라고 한다.
+
+<img width="500" src="https://github.com/user-attachments/assets/83af0d91-3a3e-412a-8363-8893192e6144">
+
+
+
+Host의 8080 포트 (외부)와 Container의 80 포트 (내부)를 연결하여 포워딩한다.
+
+도커는 호스트 컴퓨터의 8080 포트로 들어오는 트래픽을 주시하다가 필요한 트래픽을 컨테이너 80 포트로 전달한다.
+
+-p는 publish의 약어이다.
+
+이 플래그 덕분에 컨테이너의 포트가 공개되어, Host 컴퓨터의 물리 네트워크 주소가 컨테이너의 가상 네트워크 주소에 접근할 수 있다.
+
+**CLI 사용**
+
+```cpp
+docker run --name {name} -d -p {host포트}:{container포트} {이미지명}
+```
+
+localhost8080에서 잘 접속된 것을 확인할 수 있다
+
+<img width="500" src="https://github.com/user-attachments/assets/3974a2c6-d174-4cff-9951-378b0838f21a">
+
+
+**Docker Desktop 사용**
+
+Docker > Images 탭에서  httpd를 실행할 때 이미지를 실행할 컨테이너 옵션 설정을 할 수 있다.
+
+Ports 
+
+- Container Port = 이미지의 프로세스로 접속시 사용할 포트
+- Host Port = 우리가 설정해줄 port
+
+host의 몇 번 포트로 접속했을 때 container port로 연결할 지 설정하는 것
+
+<img width="500" src="https://github.com/user-attachments/assets/bee30f8d-bb2e-4a52-99b9-237013e687d6">
+
+
+Host의 8080 포트로 접속할 경우 해당 컨테이너의 80번 포트와 연결되도록 설정
+
+<img width="500" src="https://github.com/user-attachments/assets/6db7f987-2995-4b06-abc8-96e2fdef5642">
+
+
+localhost8080 으로 접속하면 잘 연결된 것을 확인할 수 있다.
+<img width="500" src="https://github.com/user-attachments/assets/9c8b9d32-e253-40c4-a048-42e9e45b868e">
+
+
+### Docker 컨테이너 데이터 저장
+
+docker 컨테이너의 데이터는 컨테이너 삭제 시 함께 사라짐
+
+→ docker에서 돌아가는 애플리케이션은 컨테이너 생명 주기와는 관계 없이 영속적인 데이터 저장이 필요
+
+바인드 마운트, docker 볼륨으로 해결 가능
+
+**바인드 마운트**
+
+<img width="500" src="https://github.com/user-attachments/assets/dfd9727f-8b6a-46f9-aef9-4015fe0c24fa">
+
+
+
+호스트 파일 시스템 특정 경로를 컨테이너로 바로 가져올 수 있음
+
+docker run 실행시 -v 옵션으로 호스트의 파일 경로를 지정해주면 됨
+
+```bash
+docker run --name {컨테이너명} -d -p {Host port}:{container port} -v {경로} {이미지명}
+```
+<img width="500" src="https://github.com/user-attachments/assets/7bc27d2d-b708-49af-9585-29670e794851">
+
+
+등록 한 후에
+
+docker inspect bindTest를 하고 Mounts 부분을 보면 확인 가능하다.
+
+<img width="500" src="https://github.com/user-attachments/assets/90aa19d0-dd29-4951-a6bb-f0b2080f57e7">
+
+
+**docker volume** 
+
+docker에서 권장하는 방법
+
+컨테이너의 네부 데이터를 외부로 링크를 걸어주는 기능, 내부에서 수정되는 경우 외부 데이터도 같이 수정됨
+
+컨테이너는 삭제되어도 외부에 데이터가 남게 됨
+
+<img width="500" src="https://github.com/user-attachments/assets/be4e5b9e-5ee3-4ad8-be37-891b755020ff">
+
+
+docker run -v 옵션을 통해서 내부 디렉토리와 volume을 연결할 수 있다. 
+
+**⭐️ 위 방식을 사용하는 경우 입력한 컨테이너 외부 디렉터리(볼륨) 데이터로 내부 데이터가 덮어씌워짐**
+
+만약 외부가 빈 상태라면 내부 디렉터리 내용이 삭제되고 빈 상태가 된다.
+
+볼륨을 삭제할 때는 마운트된 컨테이너를 먼저 삭제해야한다. 
+
+```bash
+# 볼륨 생성
+docker volume create {볼륨명}
+
+# 볼륨 정보 확인
+docker volume inspect {볼륨명}
+
+# 볼륨 - 컨테이너 연결 (마운트)
+docker run -v {볼륨명}:{컨테이너 내부 디렉토리 경로} --name {컨테이너명} {이미지명}
+
+# 볼륨 삭제
+docker volume rm {볼륨명} 
+
+# 마운트되어있지 않은 볼륨 삭제
+docker volume prune
+```
+
+volume을 생성하고, 이미지로 실행한 컨테이너와 volume을 연결한다
+
+<img width="500" src="https://github.com/user-attachments/assets/16b94fb3-51ef-4320-882d-2b755a51defb">
+
+
+이후 컨테이너 정보를 출력하면 MountPoint에 volume이 연결되어 있는 것을 확인할 수 있다.
+
+<img width="500" src="https://github.com/user-attachments/assets/31afea9d-08b3-412d-afca-9c55007b604b">
+
+
+---
+
+## Docker 기반 스프링부트 빌드
+
+도커에 띄울 때 2가지 방식을 사용할 수 있다.
+
+### DockerFile
+
+1. jar 파일 생성
+
+수정사항이 있으며 bootJar을 눌러서 반영해줘야한다
+
+<img width="300" src="https://github.com/user-attachments/assets/4d01226b-a9ee-4fb9-9b2f-209816f3cfdf">
+
+
+1. **Dockerfile 생성**
+
+프로젝트 최상단에 Dockerfile 명으로 파일을 생성한다.
+
+jdk 버전을 실제 사용 버전과 맞춰야한다. 
+
+자바 22는 지원을 안해서….. gradle 부터 프로젝트 jdk까지 다 변경했다 😱😱😱
+
+```bash
+FROM openjdk:21
+ARG JAR_FILE=/build/libs/*.jar
+COPY ${JAR_FILE} app.jar
+ENTRYPOINT ["java","-jar", "/app.jar"]
+```
+
+1. **도커 이미지 생성**
+
+Dockerfile 위치와 같은 곳에서 명령어를 입력한다면 . 을 넣으면 됨
+
+```bash
+docker build -t {이미지명} {docker 파일 위치}
+```
+
+<img width="500" src="https://github.com/user-attachments/assets/822863cb-ec40-4e58-a043-d3587bb86091">
+
+
+
+test1 이름으로 이미지가 만들어진 것을 확인 할 수 있다
+
+<img width="500" src="https://github.com/user-attachments/assets/45356840-3ed6-4f91-a3a5-02400bc243f2">
+
+
+**4.  도커 이미지 실행** 
+
+JWT 토큰 암호화 값 등 env file을 옵션으로 전달해줘야함 
+
+```bash
+docker run --env-file .env -p 8080:8080 testimage
+```
+
+실행하면 도커 컨테이너에서 애플리케이션이 돌아간다 ~ 
+
+<img width="500" src="https://github.com/user-attachments/assets/e0237d52-e1a2-4c73-8e1d-61de2151e6c6">
+
+
+
+컨테이너에서 test1 이미지로 실행 중인 컨테이너를 확인할 수 있다.
+
+<img width="500" src="https://github.com/user-attachments/assets/713f441a-ee72-4b12-b953-d11799e0d29a">
+
+
+**+) mysql 오류 해결**
+
+자꾸 mysql을 못 불러오고, Jdbc에서 DB를 연결할 수 없다는 에러가 뜨면서 실행이 안 됐다 .. 
+
+오류 문구 중 이런게 있어서
+
+```bash
+2024-11-15T12:24:54.007Z ERROR 1 --- [           main] j.LocalContainerEntityManagerFactoryBean : Failed to initialize JPA EntityManagerFactory: Unable to create requested service [org.hibernate.engine.jdbc.env.spi.JdbcEnvironment] due to: Unable to determine Dialect without JDBC metadata (please set 'jakarta.persistence.jdbc.url' for common cases or 'hibernate.dialect' when a custom Dialect implementation must be provided)
+```
+
+application.yml 에 dialect 를 추가하는 방식으로 해결했다. 
+
+왜 해결됐는지 찾아봐야겠다 …….
+
+```bash
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        ddl-auto: update
+        **dialect: org.hibernate.dialect.MySQL8Dialect**
+```
+
+### Docker Compose
+
+1. **docker-compose.yml 생성**
+
+최상단에 docker-compose.yml을 생성한다.
+
+환경 변수들은 .env에서 관리하고 불러왔다.
+
+db ports 번호는 host, container 순인데 host (내 컴퓨터)에서 3306에서 돌아가는게 있어서 3307으로 변경했다.
+
+```bash
+Error response from daemon: Ports are not available: exposing port TCP 0.0.0.0:3306 -> 0.0.0.0:0: listen tcp4 0.0.0.0:3306: bind: address already in use
+
+```
+
+```bash
+version: "3"
+
+services:
+  db:
+    image: mariadb:latest
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+    volumes:
+      - dbdata:/var/lib/mysql
+    ports:
+      - "3307:${DB_PORT}"
+    restart: always
+
+  web:
+    container_name: web
+    build: .
+    ports:
+      - "${APP_PORT}:${APP_PORT}"
+    depends_on:
+      - db
+    environment:
+      MYSQL_HOST: ${DB_HOST}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DB: ${DB_NAME}
+    restart: always
+    volumes:
+      - app:/app
+
+volumes:
+  dbdata:
+  app:
+
+```
+
+1. **실행**
+
+```bash
+docker-compose -f docker-compose.yml up --build
+```
+
+빌드가 끝나면 마찬가지로 실행된다 
+
+<img width="500" src="https://github.com/user-attachments/assets/02d8fdd7-cc46-44b9-b65c-f29f17b713c5">
+<img width="500" src="https://github.com/user-attachments/assets/ba26afc1-534a-4fa4-a7d8-2b5c403a956a">
+<img width="500" src="https://github.com/user-attachments/assets/e9d4306d-92ee-4811-9cab-0e4325e7ac39">
+
+
+### DockerFile vs Docker Compose
+
+두 방식의 차이는 뭘까?
+`Dockerfile` : 이미지를 생성하기 위한 일종의 설계도
+
+`Docker Compose` : 여러 도커 컨테이너를 정의하고 실행하기 위한 도구
+
+**차이점**
+
+- **목적**: Dockerfile은 단일 이미지를 구축하는 데 집중하는 반면, Docker Compose는 여러 컨테이너의 구성과 관리에 집중
+- **범위**: Dockerfile은 한 컨테이너 내부의 설정에 관한 것이고, Docker Compose는 여러 컨테이너가 어떻게 함께 동작해야 하는지에 대한 외부 설정을 다룸
+
+---
+
+## Reference
+
+- [Docker](https://sunrise-min.tistory.com/entry/Docker-Container%EC%99%80-Image%EB%9E%80-%EB%AC%B4%EC%97%87%EC%9D%B8%EA%B0%80)
+- [포트포워딩](https://velog.io/@luna_lee/Docker-%EB%8F%84%EC%BB%A4-%EC%9E%85%EB%AC%B8%EA%B3%BC%EC%A0%95-Port-forwarding)
+- [바인드 마운트](https://www.daleseo.com/docker-volumes-bind-mounts/)
+- [dockerfile, compose](https://www.inflearn.com/community/questions/1160100/dockerfile%EA%B3%BC-dockercompose-%EC%B0%A8%EC%9D%B4%EA%B0%80-%EA%B6%81%EA%B8%88%ED%95%A9%EB%8B%88%EB%8B%A4?srsltid=AfmBOorglkZj_6AD9mVZpyPr7LKsc_wdDBPhMHi13e93Sb-PHzb_GKbh)
+- [volume](https://formulous.tistory.com/17)
